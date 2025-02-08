@@ -1,0 +1,149 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("POSTGRES_PRISMA_URL") // uses connection pooling
+}
+
+enum Role {
+  SYSTEM_ADMIN
+  COLLECTIVE_ADMIN
+  COLLECTIVE_MEMBER
+  PROMOTER
+  DOORMAN
+  RAVER
+}
+
+enum TicketStatus {
+  ACTIVE
+  CHECKED
+  ANNULLED
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+model User {
+  id String @id @unique @default(cuid())
+  name String
+  lastName String
+  idType String? @default("CC")
+  idNumber String
+  gender String?
+  birthday String?
+  email String @unique
+  password String
+  phone String?
+  city String
+  createdAt DateTime @default(now())
+  updatedAt DateTime? @updatedAt
+  role Role
+  collectiveId String
+  collective Collective? @relation("userCollective")
+  transactions Transaction[]
+  purchasedTickets Ticket[] @relation("ownerUser")
+  generatedTickets Ticket[] @relation("generatorUser")
+}
+
+model Collective {
+  id String @id @unique @default(cuid())
+  name String
+  logoUrl String
+  description String
+  address String
+  ownerId String @unique
+  events Event[] @relation("collectiveEvents")
+  owner User @relation("userCollective", fields: [ownerId], references: [id])
+}
+
+model Event {
+  id String @id @unique @default(cuid())
+  name String
+  description String
+  DJsLineUp String[]
+  date DateTime
+  time String
+  venue String
+  venueAddress String
+  flyerUrl String
+  ticketing Ticketing[]
+  VJsLineUp String[]
+  collectiveId String?
+  collective Collective? @relation("collectiveEvents", fields: [collectiveId], references: [id])
+  isSoldOut Boolean @default(false)
+
+  transactions Transaction[]
+  soldTickets Ticket[]
+  config EventConfig?
+}
+
+model EventConfig {
+  id String @id @unique @default(cuid())
+  event Event @relation(fields: [eventId], references: [id])
+  eventId String @unique
+  ticketHtml String
+  bgImageUrl String? @default("default-flyer.png")
+  logoImageUrl String? @default("default-logo.png")
+  bgColor String? @default("#000000")
+  ticketingEmailAddress String
+  ticketingAppPassword String
+  emailFrom String
+  emailSubject String
+  emailBody String
+}
+
+model Transaction {
+  id String @id @unique @default(cuid())
+  provider String
+  providerTransactionId String
+  providerTransactionReference String
+  status PaymentStatus
+  amount Float
+  eventId String
+  userId String
+  ticketingId String? @default(cuid())
+  ticketId String? @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime? @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+  ticket Ticket? @relation(fields: [ticketId], references: [id])
+}
+
+model Ticket {
+  id String @id @unique @default(cuid())
+  tickedId String
+  userId String
+  event Event? @relation(fields: [eventId], references: [id])
+  eventId String
+  status TicketStatus
+  createdAt DateTime @default(now())
+  updatedAt DateTime? @updatedAt
+  checkedAt DateTime?
+  ticketing Ticketing @relation(fields: [ticketingId], references: [id])
+  ticketingId String
+  transaction Transaction?
+  generatedById String
+
+  generatedBy User @relation("generatorUser", fields: [generatedById], references: [id])
+  user User @relation("ownerUser", fields: [userId], references: [id])
+}
+
+model Ticketing {
+  id String @id @unique @default(cuid())
+  name String
+  startDate DateTime
+  endDate DateTime
+  price Float
+  event Event @relation(fields: [eventId], references: [id])
+  eventId String
+  soldTickets Ticket[]
+  isAvailable Boolean @default(true)
+}
