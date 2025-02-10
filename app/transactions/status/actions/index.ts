@@ -31,8 +31,7 @@ export const processApprovedTransaction = async (
 
   const response = await generateTicket({
     eventId: transaction.eventId,
-    name: transaction.user?.name!,
-    lastName: transaction.user?.lastName!,
+    fullName: transaction.user?.name! + " " + transaction.user?.lastName!,
     email: transaction.user?.email!,
     phone: transaction.user?.phone!,
     city: transaction.user?.city!,

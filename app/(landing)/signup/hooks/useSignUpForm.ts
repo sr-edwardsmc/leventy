@@ -62,7 +62,6 @@ export const useSignUpForm = () => {
       ...data,
       name,
       lastName,
-      collectiveId: "RAVERS",
       createdAt: getISODateGMTminus5(new Date()),
       updatedAt: getISODateGMTminus5(new Date()),
       role: Role.RAVER,

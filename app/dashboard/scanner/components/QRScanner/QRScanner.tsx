@@ -6,8 +6,7 @@ import QrScanner from "qr-scanner";
 import QrFrame from "@/public/assets/qr-frame.svg";
 import "./qr-scanner.css";
 import { validateTicket } from "@/app/dashboard/(dashboard)/tickets/actions";
-import { type TTicket } from "@/types/events";
-import { TUser } from "@/types/users";
+import { TRaver, type TTicket } from "@/types/events";
 
 const QrReader = ({ onClose }: { onClose: () => void }) => {
   // QR States
@@ -20,7 +19,7 @@ const QrReader = ({ onClose }: { onClose: () => void }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [invalidQr, setInvalidQr] = useState<TTicket | null>(null);
   const [ticket, setTicket] = useState<TTicket | null>(null);
-  const [ticketOwner, setTicketOwner] = useState<TUser | null>(null);
+  const [ticketOwner, setTicketOwner] = useState<TRaver | null>(null);
 
   // Result
   const [scannedResult, setScannedResult] = useState<string | undefined>("");
@@ -91,7 +90,7 @@ const QrReader = ({ onClose }: { onClose: () => void }) => {
         if (response?.status === "success") {
           setQRValidationStatus("valid");
           setTicket(response.ticket!);
-          setTicketOwner(response.ticket!.user);
+          setTicketOwner(response.ticket!.raver!);
         } else {
           if (response?.status === "error") {
             setInvalidQr(response.ticket!);
@@ -167,9 +166,7 @@ const QrReader = ({ onClose }: { onClose: () => void }) => {
                 <span>
                   Etapa: {ticket?.ticketing.name} - ${ticket?.ticketing.price}
                 </span>
-                <span className="">
-                  {ticketOwner?.name} {ticketOwner?.lastName}
-                </span>
+                <span className="">{ticketOwner?.fullName}</span>
                 <span>{ticketOwner?.idNumber} </span>
               </div>
             </div>
