@@ -21,24 +21,17 @@ import { useParams } from "next/navigation";
 const ticketsTableColumnHelper = createColumnHelper<TTicket>();
 export const ticketsTableDefs = {
   columns: [
-    ticketsTableColumnHelper.accessor("user.name", {
+    ticketsTableColumnHelper.accessor("raver.fullName", {
       header: "Nombre Titular",
-      cell: (info) =>
-        info.row.original.user.name + " " + info.row.original.user.lastName,
+      cell: (info) => info.row.original.raver?.fullName,
     }),
-    ticketsTableColumnHelper.accessor("user.email", {
+    ticketsTableColumnHelper.accessor("raver.email", {
       header: "Email",
-      cell: (info) => {
-        let email = info.row.original.user.email;
-        if (email.includes("duplicated-")) {
-          email = email.split("-")[0];
-        }
-        return email;
-      },
+      cell: (info) => info.row.original.raver?.email,
     }),
-    ticketsTableColumnHelper.accessor("user.idNumber", {
+    ticketsTableColumnHelper.accessor("raver.idNumber", {
       header: "Identificación",
-      cell: (info) => info.row.original.user.idNumber,
+      cell: (info) => info.row.original.raver?.idNumber,
     }),
     ticketsTableColumnHelper.accessor("status", {
       header: "Estado del QR",
@@ -133,10 +126,7 @@ const TicketsTable = (props: TicketsTableProps) => {
     ];
 
     table.getRowModel().rows.forEach((row, index) => {
-      let rowEmail = row.original.user.email;
-      if (rowEmail.includes("duplicated-")) {
-        rowEmail = rowEmail.split("-")[0];
-      }
+      let rowEmail = row.original.raver?.email;
       let rowStatus =
         row.original.status === TicketStatus.ACTIVE
           ? "Activo"
@@ -145,9 +135,9 @@ const TicketsTable = (props: TicketsTableProps) => {
           : "Usado";
       worksheet.addRow({
         ID: index + 1,
-        Nombre: row.original.user.name + " " + row.original.user.lastName,
+        Nombre: row.original.raver?.fullName,
         Email: rowEmail,
-        Identificacion: row.original.user.idNumber,
+        Identificacion: row.original.raver?.idNumber,
         Estado: rowStatus,
         Valor: row.original.ticketing.price,
         Responsable:
@@ -191,9 +181,8 @@ const TicketsTable = (props: TicketsTableProps) => {
         method: "POST",
         body: JSON.stringify({
           ticketId: ticketData?.tickedId,
-          name: ticketData?.user.name,
-          lastName: ticketData?.user.lastName,
-          idNumber: ticketData?.user.idNumber,
+          fullName: ticketData?.raver?.fullName,
+          idNumber: ticketData?.raver?.idNumber,
           eventId,
         }),
       });
@@ -204,8 +193,8 @@ const TicketsTable = (props: TicketsTableProps) => {
         // Create a link to trigger the download
         const a = document.createElement("a");
         a.href = url;
-        a.download = `ticket-${ticketData!.user.name}-${
-          ticketData!.user.lastName
+        a.download = `ticket-${ticketData!.raver?.fullName}-${
+          ticketData!.raver?.idNumber
         }.pdf`;
         document.body.appendChild(a);
         a.click();

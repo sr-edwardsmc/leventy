@@ -1,10 +1,12 @@
-import { Event, Ticket, Ticketing, TicketStatus } from "@prisma/client";
+import { Event, Raver, Ticket, Ticketing, TicketStatus } from "@prisma/client";
 import { TUser } from "./users";
 
 export type TEvent = Event;
 
+export type TRaver = Raver;
+
 export type TTicket = Ticket & {
-  user: TUser;
+  raver: TRaver | null;
   generatedBy: TUser;
   ticketing: Ticketing;
 };

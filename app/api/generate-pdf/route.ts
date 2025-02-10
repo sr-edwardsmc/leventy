@@ -9,7 +9,7 @@ import db from "@/config/db";
 
 export async function POST(req: NextRequest) {
   // Get parameters from body
-  const { name, lastName, idNumber, ticketId, eventId } = await req.json();
+  const { fullName, idNumber, ticketId, eventId } = await req.json();
   const browser = await Puppeteer.launch({
     headless: true,
     args: [
@@ -34,8 +34,7 @@ export async function POST(req: NextRequest) {
   const htmlContent = eventConfig?.ticketHtml
     .replace("[logoImage]", logoImage)
     .replace("[qrCode]", qrCode)
-    .replace("[name]", name)
-    .replace("[lastName]", lastName)
+    .replace("[fullName]", fullName)
     .replace("[idNumber]", idNumber);
 
   await page.setContent(htmlContent!);

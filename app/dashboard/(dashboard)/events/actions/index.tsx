@@ -30,7 +30,9 @@ export const populateTickets = async () => {};
 export const getEventsByCollectiveId = async (
   collectiveId: string
 ): Promise<TEvent[]> => {
-  return await db.event.findMany({ where: { collectiveId } });
+  return await db.event.findMany({
+    where: { collectiveId, date: { gte: new Date().toISOString() } },
+  });
 };
 
 export const getEvents = async (): Promise<TEvent[]> => {

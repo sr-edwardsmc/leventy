@@ -22,6 +22,7 @@ export const signIn = async (
   });
 
   if (userFound) {
+    console.log("userFound", userFound);
     const isPasswordValid = await bcryptCompare(password, userFound.password);
     if (isPasswordValid) {
       setSession(userFound);

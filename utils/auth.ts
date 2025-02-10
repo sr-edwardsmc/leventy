@@ -4,7 +4,7 @@ import { decryptJWT, encryptJWT } from "./cryptography";
 import { cookies } from "next/headers";
 
 export const setSession = async (user: TUserWithRelations) => {
-  const expiration = new Date(Date.now() + 60 * 60 * 1000);
+  const expiration = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const session = await encryptJWT({ ...user, expiration });
   cookies().set("session", session, {
     expires: expiration,

@@ -11,10 +11,11 @@ import { Role } from "@prisma/client";
 interface SidebarProps {}
 
 const Sidebar = ({}: SidebarProps) => {
+  const [userRole, setUserRole] = useState("");
+  const [collectiveLogo, setCollectiveLogo] = useState("");
   const pathname = usePathname();
   const { sidebarOpen, setSidebarOpen } = useAppStore();
   const { user } = useUserStore();
-  const userRole = user?.role;
 
   const trigger = useRef<any>(null);
   const sidebar = useRef<any>(null);
@@ -64,6 +65,13 @@ const Sidebar = ({}: SidebarProps) => {
     }
   }, [sidebarExpanded]);
 
+  useEffect(() => {
+    if (user) {
+      setUserRole(user.role);
+      setCollectiveLogo(user.collective?.logoUrl!);
+    }
+  }, [user]);
+
   return (
     <aside
       ref={sidebar}
@@ -75,7 +83,7 @@ const Sidebar = ({}: SidebarProps) => {
       <div className="flex items-center justify-center gap-2 px-6 py-5.5 lg:py-6.5">
         <Link href="/">
           <Image
-            src={"/" + user?.collective?.logoUrl!}
+            src={"/" + collectiveLogo}
             alt="Collective Logo"
             width={100}
             height={100}
@@ -119,7 +127,8 @@ const Sidebar = ({}: SidebarProps) => {
             <ul className="mb-6 flex flex-col gap-1.5">
               {/* <!-- Menu Item Dashboard --> */}
               {(userRole === Role.SYSTEM_ADMIN ||
-                userRole === Role.COLLECTIVE_ADMIN) && (
+                userRole === Role.COLLECTIVE_ADMIN ||
+                userRole === Role.PROMOTER) && (
                 <SidebarLinkGroup activeCondition={pathname === "/dashboard"}>
                   {(handleClick, open) => {
                     return (

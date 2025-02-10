@@ -18,6 +18,9 @@ const wompiClient = new WompiClient();
 export const getAllEventsOrdered = async () => {
   const events: (TEvent & { ticketing: Ticketing[] })[] =
     await db.event.findMany({
+      where: {
+        date: { gte: new Date().toISOString() },
+      },
       include: {
         ticketing: {
           where: {

@@ -1,15 +1,21 @@
 import db from "@/config/db";
-import { TicketStatus } from "@prisma/client";
+import { TUserWithRelations } from "@/types/users";
+import { Role, TicketStatus } from "@prisma/client";
 
-export const getDashboardStatictics = async (collectiveId: string) => {
+export const getDashboardStatictics = async (user: TUserWithRelations) => {
+  const generatedBy =
+    user.role === Role.SYSTEM_ADMIN || user.role === Role.COLLECTIVE_ADMIN
+      ? {}
+      : { generatedById: user.id };
   const totalSoldTickets = await db.ticket.findMany({
     where: {
       status: {
         not: TicketStatus.ANNULLED,
       },
       event: {
-        collectiveId: collectiveId,
+        collectiveId: user.collectiveId,
       },
+      ...generatedBy,
     },
     include: {
       ticketing: true,
@@ -18,13 +24,13 @@ export const getDashboardStatictics = async (collectiveId: string) => {
 
   const totalEvents = await db.event.count({
     where: {
-      collectiveId: collectiveId,
+      collectiveId: user.collectiveId,
     },
   });
 
   const totalUsers = await db.user.count({
     where: {
-      collectiveId,
+      collectiveId: user.collectiveId,
     },
   });
 

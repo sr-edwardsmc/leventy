@@ -40,15 +40,31 @@ model User {
   email String @unique
   password String
   phone String?
-  city String
+  city String? @default("Medellín")
   createdAt DateTime @default(now())
   updatedAt DateTime? @updatedAt
   role Role
-  collectiveId String
-  collective Collective? @relation("userCollective")
+  collectiveId String?
+
+  collective Collective? @relation("collectiveMembers", fields: [collectiveId], references: [id])
   transactions Transaction[]
   purchasedTickets Ticket[] @relation("ownerUser")
   generatedTickets Ticket[] @relation("generatorUser")
+}
+
+model Raver {
+  id String @id @unique @default(cuid())
+  fullName String
+  idNumber String
+  email String
+  idType String? @default("CC")
+  birthday String?
+  phone String?
+  city String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime? @updatedAt
+
+  tickets Ticket[]
 }
 
 model Collective {
@@ -57,9 +73,8 @@ model Collective {
   logoUrl String
   description String
   address String
-  ownerId String @unique
   events Event[] @relation("collectiveEvents")
-  owner User @relation("userCollective", fields: [ownerId], references: [id])
+  members User[] @relation("collectiveMembers")
 }
 
 model Event {
@@ -120,7 +135,8 @@ model Transaction {
 model Ticket {
   id String @id @unique @default(cuid())
   tickedId String
-  userId String
+  userId String?
+  raverId String?
   event Event? @relation(fields: [eventId], references: [id])
   eventId String
   status TicketStatus
@@ -133,7 +149,8 @@ model Ticket {
   generatedById String
 
   generatedBy User @relation("generatorUser", fields: [generatedById], references: [id])
-  user User @relation("ownerUser", fields: [userId], references: [id])
+  user User? @relation("ownerUser", fields: [userId], references: [id])
+  raver Raver? @relation(fields: [raverId], references: [id])
 }
 
 model Ticketing {

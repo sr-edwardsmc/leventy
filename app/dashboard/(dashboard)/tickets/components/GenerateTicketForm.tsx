@@ -11,9 +11,8 @@ import { Loader } from "@/components/Loader/Loader";
 
 const formInitialValues = {
   eventId: "",
-  name: "",
   birthday: "",
-  lastName: "",
+  fullName: "",
   gender: "",
   city: "",
   ticketingId: "",
@@ -54,8 +53,7 @@ function GenerateTicketForm({ events, adminUsers }: GenerateTicketFormProps) {
       alert("Error al generar ticket");
     }
     reset({
-      name: "",
-      lastName: "",
+      fullName: "",
       birthday: "",
       idNumber: "",
       email: "",
@@ -124,7 +122,7 @@ function GenerateTicketForm({ events, adminUsers }: GenerateTicketFormProps) {
               </h2>
               <div>
                 <label className="mb-3 block text-black dark:text-white">
-                  Nombre: <span className="text-red-500">*</span>
+                  Nombre & Apellidos: <span className="text-red">*</span>
                 </label>
                 <Controller
                   render={({ field }) => (
@@ -135,13 +133,13 @@ function GenerateTicketForm({ events, adminUsers }: GenerateTicketFormProps) {
                     />
                   )}
                   rules={{ required: true }}
-                  name="name"
+                  name="fullName"
                   control={control}
                 />
               </div>
               <div>
                 <label className="mb-3 block text-black dark:text-white">
-                  Apellido: <span className="text-red-500">*</span>
+                  Número de documento: <span className="text-red">*</span>
                 </label>
                 <Controller
                   render={({ field }) => (
@@ -152,7 +150,24 @@ function GenerateTicketForm({ events, adminUsers }: GenerateTicketFormProps) {
                     />
                   )}
                   rules={{ required: true }}
-                  name="lastName"
+                  name="idNumber"
+                  control={control}
+                />
+              </div>
+              <div>
+                <label className="mb-3 block text-black dark:text-white">
+                  Email: <span className="text-red">*</span>
+                </label>
+                <Controller
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="text"
+                      className="w-full rounded-lg border-[1.5px] border-stroke bg-transparent py-3 px-5 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    />
+                  )}
+                  rules={{ required: true }}
+                  name="email"
                   control={control}
                 />
               </div>
@@ -194,7 +209,7 @@ function GenerateTicketForm({ events, adminUsers }: GenerateTicketFormProps) {
               </div>
               <div>
                 <label className="mb-3 block text-black dark:text-white">
-                  Ciudad: <span className="text-red-500">*</span>
+                  Ciudad:
                 </label>
                 <Controller
                   render={({ field }) => (
@@ -204,14 +219,15 @@ function GenerateTicketForm({ events, adminUsers }: GenerateTicketFormProps) {
                       className="w-full rounded-lg border-[1.5px] border-stroke bg-transparent py-3 px-5 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
                     />
                   )}
-                  rules={{ required: true }}
+                  rules={{ required: false }}
                   name="city"
                   control={control}
                 />
               </div>
+
               <div>
                 <label className="mb-3 block text-black dark:text-white">
-                  Número de documento: <span className="text-red-500">*</span>
+                  Teléfono:
                 </label>
                 <Controller
                   render={({ field }) => (
@@ -221,41 +237,7 @@ function GenerateTicketForm({ events, adminUsers }: GenerateTicketFormProps) {
                       className="w-full rounded-lg border-[1.5px] border-stroke bg-transparent py-3 px-5 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
                     />
                   )}
-                  rules={{ required: true }}
-                  name="idNumber"
-                  control={control}
-                />
-              </div>
-              <div>
-                <label className="mb-3 block text-black dark:text-white">
-                  Email: <span className="text-red-500">*</span>
-                </label>
-                <Controller
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="text"
-                      className="w-full rounded-lg border-[1.5px] border-stroke bg-transparent py-3 px-5 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
-                    />
-                  )}
-                  rules={{ required: true }}
-                  name="email"
-                  control={control}
-                />
-              </div>
-              <div>
-                <label className="mb-3 block text-black dark:text-white">
-                  Teléfono: <span className="text-red-500">*</span>
-                </label>
-                <Controller
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="text"
-                      className="w-full rounded-lg border-[1.5px] border-stroke bg-transparent py-3 px-5 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
-                    />
-                  )}
-                  rules={{ required: true }}
+                  rules={{ required: false }}
                   name="phone"
                   control={control}
                 />

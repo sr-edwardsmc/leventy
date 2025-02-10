@@ -4,7 +4,7 @@ import { DashboardStatistics } from "./components/DashboardStatistics/DashboardS
 
 export default async function DashboardPage() {
   const user = await getSession();
-  const dashboardStatistics = await getDashboardStatictics(user!.collectiveId!);
+  const dashboardStatistics = await getDashboardStatictics(user!);
 
   return (
     <>

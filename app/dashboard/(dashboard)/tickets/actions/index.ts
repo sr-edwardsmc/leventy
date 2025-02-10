@@ -20,6 +20,9 @@ export const getCollectiveEvents = async (collectiveId: string) => {
   return await db.event.findMany({
     where: {
       collectiveId,
+      date: {
+        gte: new Date().toISOString(),
+      },
     },
   });
 };
@@ -33,14 +36,14 @@ export const changeTicketStatus = (
       id: ticketId,
     },
     include: {
-      user: true,
+      raver: true,
       generatedBy: true,
       ticketing: true,
     },
     data: {
       status: newStatus,
     },
-  });
+  }) as Promise<TTicket>;
 };
 
 export const getCollectiveUsers = async (collectiveId: string) => {
@@ -61,7 +64,7 @@ export const getGeneratedTicketsByEventId = async (
       generatedById: promoterId,
     },
     include: {
-      user: true,
+      raver: true,
       generatedBy: true,
       ticketing: true,
     },
@@ -81,8 +84,7 @@ export const getTicketing = async (eventId: string) => {
 };
 
 export const generateTicket = async (data: {
-  name: string;
-  lastName: string;
+  fullName: string;
   birthday?: string;
   idNumber: string;
   eventId: string;
@@ -94,8 +96,7 @@ export const generateTicket = async (data: {
   ticketingId: string;
 }) => {
   const {
-    name,
-    lastName,
+    fullName,
     birthday,
     idNumber,
     eventId,
@@ -134,8 +135,7 @@ export const generateTicket = async (data: {
     const htmlContent = eventConfig?.ticketHtml
       .replace("[logoImage]", logoImage)
       .replace("[qrCode]", qrCode)
-      .replace("[name]", name)
-      .replace("[lastName]", lastName)
+      .replace("[fullName]", fullName)
       .replace("[idNumber]", idNumber);
 
     await page.setContent(htmlContent!);
@@ -145,42 +145,27 @@ export const generateTicket = async (data: {
 
     page.close().then(() => {});
 
-    let user = null;
-    let duplicatedUserEmail = email;
-
-    user = await db.user.findFirst({ where: { email } });
-
-    const randomEncryptedPassword = String(
-      process.env.RANDOM_ENCRYPTED_PASSWORD
-    );
-
-    if (user) {
-      duplicatedUserEmail = `${email}-duplicated-${randomId}`;
-    }
-
-    user = await db.user.create({
+    const raverRecord = await db.raver.create({
       data: {
-        email: duplicatedUserEmail,
-        idType: "CC",
-        name,
-        lastName,
-        gender,
-        password: randomEncryptedPassword,
+        email: email,
+        fullName: `${fullName}`,
+        city,
+        phone,
         birthday,
         idNumber,
-        phone,
-        city,
-        collectiveId: "RAVERS",
         createdAt: getISODateGMTminus5(new Date()),
         updatedAt: getISODateGMTminus5(new Date()),
-        role: Role.RAVER,
       },
     });
+
+    if (!raverRecord) {
+      throw new Error("Error creating raver record");
+    }
 
     const createdTicket = await db.ticket.create({
       data: {
         eventId,
-        userId: user.id,
+        raverId: raverRecord.id,
         tickedId: uniqueIdentifier,
         ticketingId,
         status: TicketStatus.ACTIVE,
@@ -195,10 +180,7 @@ export const generateTicket = async (data: {
       from: `${eventConfig?.emailFrom} ${eventConfig?.ticketingEmailAddress}`,
       to: email,
       subject: eventConfig?.emailSubject,
-      html: `${eventConfig?.emailBody.replace(
-        "[NAME]",
-        `${name.toUpperCase()}!`
-      )}`,
+      html: `${eventConfig?.emailBody.replace("[NAME]", `${fullName}!`)}`,
       attachments: [
         {
           filename: `ticket-${randomId}.pdf`,
@@ -240,7 +222,7 @@ export const generateMassiveTickets = async (
     );
 
     return {
-      name: record[0],
+      fullName: record[0],
       email: record[1],
       idNumber: String(record[2]),
       cellphone: record[3],
@@ -253,8 +235,7 @@ export const generateMassiveTickets = async (
   const tickets = await Promise.all(
     dataWithTicketing.map((record) => {
       generateTicket({
-        name: record.name,
-        lastName: "",
+        fullName: record.fullName,
         birthday: "",
         idNumber: record.idNumber,
         eventId,
@@ -279,7 +260,7 @@ export const validateTicket = async (
       tickedId: ticketId,
     },
     include: {
-      user: true,
+      raver: true,
       generatedBy: true,
       ticketing: true,
     },
