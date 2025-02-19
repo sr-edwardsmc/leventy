@@ -3,6 +3,8 @@ import Link from "next/link";
 import { useSignUpForm } from "../hooks/useSignUpForm";
 import { Notification } from "@/components/Notifications/Notifications";
 import { Loader } from "@/components/Loader/Loader";
+import CheckBox from "@/components/Checkbox/Checkbox";
+import { useRouter } from "next/navigation";
 
 export const SignUpForm = () => {
   const {
@@ -13,7 +15,11 @@ export const SignUpForm = () => {
     success,
     error,
     isLoading,
+    watch,
   } = useSignUpForm();
+
+  const router = useRouter();
+
   return (
     <>
       <section className="w-full p-4 flex items-center justify-center">
@@ -173,6 +179,31 @@ export const SignUpForm = () => {
                     className="w-full rounded-lg border border-stroke bg-transparent py-4 pl-6 pr-10 text-black outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
                   />
                 </div>
+              </div>
+
+              <div className="flex items-center gap-2 mb-2">
+                <CheckBox
+                  id="terms"
+                  label="Acepto los términos y condiciones"
+                  {...register<"termsAndConditions">("termsAndConditions", {
+                    required: true,
+                  })}
+                />
+                <Link href="/terms-conditions" target="_blank">
+                  <span className="icon-[hugeicons--link-square-01] cursor-pointer text-xl text-primary font-bold mt-2"></span>
+                </Link>
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <CheckBox
+                  id="privacy"
+                  label="Acepto la política de privacidad y tratamiento de datos"
+                  {...register<"privacyPolicy">("privacyPolicy", {
+                    required: true,
+                  })}
+                />
+                <Link href="/privacy-policy" target="_blank">
+                  <span className="icon-[hugeicons--link-square-01] cursor-pointer text-xl text-primary font-bold mt-2"></span>
+                </Link>
               </div>
 
               <div className="mt-8 mb-2 items-center gap-8 w-full">

@@ -11,7 +11,7 @@ const EventsList = ({ events }: { events: TEvent[] }) => {
 
   const handleEventSelected = (event: TEvent) => {
     setSelectedEvent(event);
-    router.push("/dashboard/tickets/resume/" + event.id);
+    router.push(`/dashboard/events/${event.id}`);
   };
 
   return (

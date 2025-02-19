@@ -20,6 +20,8 @@ interface SignUpForm {
   phone?: string;
   password: string;
   confirmPassword?: string;
+  termsAndConditions?: boolean;
+  privacyPolicy?: boolean;
 }
 
 export const useSignUpForm = () => {
@@ -35,6 +37,7 @@ export const useSignUpForm = () => {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<SignUpForm>({
     defaultValues: {
@@ -45,6 +48,8 @@ export const useSignUpForm = () => {
       city: "",
       password: "",
       confirmPassword: "",
+      termsAndConditions: false,
+      privacyPolicy: false,
     },
   });
 
@@ -58,6 +63,8 @@ export const useSignUpForm = () => {
     const [name, lastName] = data.fullName!.split(" ");
     delete data.fullName;
     delete data.confirmPassword;
+    delete data.termsAndConditions;
+    delete data.privacyPolicy;
     const createdUser = await createNewUser({
       ...data,
       name,
@@ -86,5 +93,6 @@ export const useSignUpForm = () => {
     success,
     isLoading,
     error,
+    watch,
   };
 };
