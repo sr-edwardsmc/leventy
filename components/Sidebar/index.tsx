@@ -219,8 +219,7 @@ const Sidebar = ({}: SidebarProps) => {
               {/* <!-- Menu Item Events --> */}
               {(userRole === Role.SYSTEM_ADMIN ||
                 userRole === Role.COLLECTIVE_ADMIN ||
-                userRole === Role.COLLECTIVE_MEMBER ||
-                userRole === Role.PROMOTER) && (
+                userRole === Role.COLLECTIVE_MEMBER) && (
                 <li>
                   <Link
                     href="/dashboard/events"
