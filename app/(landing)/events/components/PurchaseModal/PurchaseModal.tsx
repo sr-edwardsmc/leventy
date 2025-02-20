@@ -150,9 +150,9 @@ export const PurchaseModal = ({
             <div className="mt-4 mb-4 flex items-center">
               <span className="icon-[wpf--security-checked] text-4xl flex-[15]"></span>
               <span className="text-sm flex-[80] text-justify">
-                Todas nuestras compras estan protegidas y son procesadas
-                directmente por Wompi - Bancolombia. No almacenamos los datos de
-                tu tarjeta.
+                Todas nuestras compras están protegidas y son procesadas
+                directamente por Wompi - Bancolombia. No almacenamos los datos
+                de tu tarjeta.
               </span>
             </div>
             <div className="-mx-3 flex flex-wrap gap-y-4">
@@ -176,7 +176,7 @@ export const PurchaseModal = ({
             </h3>
             <span className="mx-auto mb-6 inline-block h-1 w-22.5 rounded bg-primary"></span>
             <p className="text-center text-black dark:text-white">
-              Necesitamos algunos datos para el proceso de pago y registrar tu
+              Necesitamos algunos datos para el proceso de pago y registrar tú
               ingreso para el evento, por favor{" "}
               <a href="/login" className="text-primary">
                 inicia sesión

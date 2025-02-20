@@ -6,10 +6,10 @@ export default function Home() {
         <span className="icon-[vs--clock] mb-4"></span>
       </div>
       <h2 className="text-2xl w-[50%] text-center">
-        Nuestro sitio web publico se encuentra en construcción <br />
+        Nuestro sitio web público se encuentra en construcción <br />
         puedes ver nuestros eventos disponibles{" "}
         <a href="/events" className="text-primary">
-          Aqui. <br />
+          Aquí. <br />
         </a>
         Estamos trabajando para ofrecerte las mejores soluciones.
       </h2>
