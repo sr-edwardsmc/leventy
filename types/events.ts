@@ -3,6 +3,10 @@ import { TUser } from "./users";
 
 export type TEvent = Event;
 
+export type TEventWithRelations = Event & {
+  ticketing: Ticketing[];
+};
+
 export type TRaver = Raver;
 
 export type TTicket = Ticket & {
