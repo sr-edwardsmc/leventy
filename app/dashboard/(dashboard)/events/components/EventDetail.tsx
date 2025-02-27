@@ -22,18 +22,18 @@ function EventDetail(props: EventDetailProps) {
   };
 
   return (
-    <section className="w-90% bg-white p-4 rounded-lg shadow-lg flex gap-4">
+    <section className="w-90% bg-white p-4 rounded-lg shadow-lg flex flex-col md:flex-row gap-4">
       <article>
         <Image
           src={"/" + selectedEvent.flyerUrl}
           alt={selectedEvent.name}
-          className="rounded-t-lg"
+          className="rounded-t-lg w-full"
           width={200}
           height={250}
         />
       </article>
-      <article className="flex flex-col h-full justify-between gap-2 text-black">
-        <section className="flex gap-20">
+      <article className="flex md:flex-row flex-col h-full justify-between gap-2 text-black">
+        <section className="flex flex-col md:flex-row gap-20">
           <article>
             <p className="text-xl font-bold">{selectedEvent.name}</p>
             <p>{selectedEvent.description}</p>
@@ -67,10 +67,10 @@ function EventDetail(props: EventDetailProps) {
           </article>
         </section>
 
-        <section className="flex gap-2 mt-12">
+        <section className="flex flex-col md:flex-row gap-2 mt-12">
           <Link
             href={`/dashboard/tickets/resume/${selectedEvent.id}`}
-            className="inline-flex items-center justify-center gap-2.5 rounded-full border border-primary py-4 px-8 text-center font-medium text-primary hover:bg-primary hover:text-white lg:px-6 xl:px-8"
+            className="inline-flex items-center justify-center gap-2.5 rounded-full border border-primary py-4 px-4 text-center font-medium text-primary hover:bg-primary hover:text-white lg:px-6 xl:px-8"
           >
             <span>
               <svg
@@ -98,7 +98,7 @@ function EventDetail(props: EventDetailProps) {
           </Link>
           <Link
             href={`/dashboard/tickets/generate`}
-            className="inline-flex items-center justify-center gap-2.5 rounded-full border border-primary py-4 px-8 text-center font-medium text-primary hover:bg-primary hover:text-white lg:px-6 xl:px-8"
+            className="inline-flex items-center justify-center gap-2.5 rounded-full border border-primary py-4 px-4 text-center font-medium text-primary hover:bg-primary hover:text-white lg:px-6 xl:px-8"
           >
             <span>
               <svg
