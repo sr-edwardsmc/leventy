@@ -17,8 +17,8 @@ const PSEForm: React.FC<PSEFormProps> = ({ orderAmount, onSubmitPayment }) => {
   } = usePSEForm({ orderAmount, onSubmitPayment });
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-3">
-      <div className="flex flex-col">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="mt-6">
+      <div className="flex flex-col mb-2">
         <label htmlFor="bank" className="mb-1 font-medium text-sm">
           Entidad bancaria:{" "}
           {errors.financialInstitutionId && (
@@ -44,7 +44,7 @@ const PSEForm: React.FC<PSEFormProps> = ({ orderAmount, onSubmitPayment }) => {
         </select>
       </div>
 
-      <div className="flex justify-start items-center gap-2">
+      <div className="flex justify-start items-center gap-2 mb-3">
         <label className="mb-1 font-medium text-md">Tipo de persona: </label>
         <div className="flex space-x-2">
           <label className="flex items-center text-sm">
@@ -72,7 +72,7 @@ const PSEForm: React.FC<PSEFormProps> = ({ orderAmount, onSubmitPayment }) => {
         </div>
       </div>
 
-      <div className="flex flex-col">
+      <div className="flex flex-col mb-2">
         <label htmlFor="cellphone" className="mb-1 font-medium text-sm">
           Número Celular:
         </label>
@@ -95,12 +95,14 @@ const PSEForm: React.FC<PSEFormProps> = ({ orderAmount, onSubmitPayment }) => {
         )}
       </div>
 
-      <button
-        type="submit"
-        className="bg-blue-500 text-white p-2 rounded !mt-6"
-      >
-        Ir al banco a pagar
-      </button>
+      <div className="w-full mb-2">
+        <button
+          type="submit"
+          className="block w-full rounded border border-stroke bg-primary p-3 text-center font-medium text-white transition"
+        >
+          Continuar
+        </button>
+      </div>
     </form>
   );
 };

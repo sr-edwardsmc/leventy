@@ -8,6 +8,7 @@ import { TEvent } from "@/types/events";
 import { generateTicket, getTicketing } from "../actions";
 import { useUserStore } from "@/store/userStore";
 import { Loader } from "@/components/Loader/Loader";
+import { Role } from "@prisma/client";
 
 const formInitialValues = {
   eventId: "",
@@ -67,7 +68,10 @@ function GenerateTicketForm({ events, adminUsers }: GenerateTicketFormProps) {
   useEffect(() => {
     if (!selectedEvent) return;
     (async () => {
-      const ticketing = await getTicketing(selectedEvent);
+      const isAdmin =
+        user?.role === Role.COLLECTIVE_ADMIN ||
+        user?.role === Role.COLLECTIVE_MEMBER;
+      const ticketing = await getTicketing(selectedEvent, isAdmin);
       setEventTicketing(ticketing);
     })();
   }, [selectedEvent]);

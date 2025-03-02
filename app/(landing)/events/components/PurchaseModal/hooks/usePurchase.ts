@@ -18,26 +18,23 @@ import {
   tokenizeCard,
 } from "@/app/(landing)/events/actions";
 import {
-  ICreateTransactionInput,
-  IFinancialInstitutionsResponse,
-  ITokenizeCardInput,
-  ITokenizeCardResponse,
-  ITransactionResponse,
+  type ICreateTransactionInput,
+  type IFinancialInstitutionsResponse,
+  type ITokenizeCardInput,
+  type ITokenizeCardResponse,
+  type ITransactionResponse,
   PAYMENT_METHOD,
 } from "@/types/wompi";
 import { getTransactionDetails } from "@/app/transactions/status/actions";
 import { useUserStore } from "@/store/userStore";
-import { generateTicket } from "@/app/dashboard/(dashboard)/tickets/actions";
-import { TEvent } from "@/types/events";
 
 const uuid = new ShortUUID();
 
-export const usePurchase = ({
-  selectedEvent,
-}: {
-  selectedEvent: TEvent & { ticketing: Ticketing[] };
-}) => {
+export const usePurchase = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const { user } = useUserStore();
+  const { selectedEvent } = usePaymentsStore();
 
   const router = useRouter();
   const {
@@ -68,6 +65,50 @@ export const usePurchase = ({
     const response: IFinancialInstitutionsResponse =
       await getFinancialInstitutions();
     setPSEFinancialInstitutions(response.data);
+  };
+
+  const resolvePaymentProcess = async (
+    paymentMethod: PAYMENT_METHOD,
+    data: any
+  ) => {
+    setIsLoading(true);
+    const paymentResolver = {
+      ["CARD"]: async () => {
+        await processCreditCardPayment({
+          cardData: {
+            card_holder: data.cardHolder,
+            number: data.cardNumber,
+            cvc: data.cvc,
+            exp_month: data.expirationDate.split("/")[0],
+            exp_year: data.expirationDate.split("/")[1],
+          },
+          amount: data.amount,
+          installments: data.installments,
+        });
+      },
+      ["NEQUI"]: () => {},
+      ["DAVIPLATA"]: () => {},
+      ["PSE"]: async () => {
+        await processPSEPayment({
+          amount: data.amount,
+          customerEmail: user?.email,
+          paymentMethod: {
+            type: PAYMENT_METHOD.PSE,
+            user_type: data.personType,
+            user_legal_id_type: user?.idType,
+            user_legal_id: user?.idNumber,
+            financial_institution_code: data.financialInstitutionId,
+            payment_description: data.paymentDescription,
+          },
+          customerData: {
+            full_name: user?.name,
+            phone_number: user?.phone,
+          },
+        });
+      },
+    };
+    await paymentResolver[paymentMethod]();
+    setIsLoading(false);
   };
 
   const processCreditCardPayment = async ({
@@ -114,12 +155,12 @@ export const usePurchase = ({
       const internalTransaction: InternalTransaction =
         await createInternalTransaction({
           amount: amount,
-          eventId: selectedEvent.id,
+          eventId: selectedEvent!.id,
           provider: "WOMPI_CREDIT_CARD",
           providerTransactionId: transactionResponse.data.id,
           providerTransactionReference: transactionReference,
           userId: loggedUser.id,
-          ticketingId: selectedEvent.ticketing[0].id,
+          ticketingId: selectedEvent!.ticketing[0].id,
           ticketId: null,
           status: PaymentStatus.PENDING,
           createdAt: new Date(),
@@ -159,7 +200,7 @@ export const usePurchase = ({
         payment_method: {
           ...paymentMethod,
           payment_description:
-            "Pago de boleto de ingreso para el evento: " + selectedEvent.name,
+            "Pago de boleto de ingreso para el evento: " + selectedEvent!.name,
         },
         customer_email: customerEmail,
         acceptance_token: acceptanceToken,
@@ -175,12 +216,12 @@ export const usePurchase = ({
       const internalTransaction: InternalTransaction =
         await createInternalTransaction({
           amount: amount,
-          eventId: selectedEvent.id,
+          eventId: selectedEvent!.id,
           provider: "WOMPI-PSE",
           providerTransactionId: transactionResponse.data.id,
           providerTransactionReference: transactionReference,
           userId: loggedUser?.id!,
-          ticketingId: selectedEvent.ticketing[0].id,
+          ticketingId: selectedEvent!.ticketing[0].id,
           ticketId: null,
           status: PaymentStatus.PENDING,
           createdAt: new Date(),
@@ -219,5 +260,10 @@ export const usePurchase = ({
     console.error("Transaction polling timed out");
   };
 
-  return { isLoading, processCreditCardPayment, processPSEPayment };
+  return {
+    isLoading,
+    processCreditCardPayment,
+    processPSEPayment,
+    resolvePaymentProcess,
+  };
 };

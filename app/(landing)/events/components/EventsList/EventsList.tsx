@@ -6,7 +6,8 @@ import { motion } from "framer-motion";
 
 import { PurchaseModal } from "../PurchaseModal/PurchaseModal";
 import { Ticketing } from "@prisma/client";
-import { TEvent } from "@/types/events";
+import { TEvent, TEventWithRelations } from "@/types/events";
+import { usePaymentsStore } from "@/store/payments";
 
 interface EventsListProps {
   eventsList: {
@@ -17,13 +18,10 @@ interface EventsListProps {
 
 export const EventsList = ({ eventsList }: EventsListProps) => {
   const [showPurchaseModal, setShowPurchaseModal] = useState<boolean>(false);
-  const [selectedEvent, setSelectedEvent] = useState<
-    (TEvent & { ticketing: Ticketing[] }) | null
-  >(null);
 
-  const handlePurchase = async (
-    selectedEvent: TEvent & { ticketing: Ticketing[] }
-  ) => {
+  const { selectedEvent, setSelectedEvent } = usePaymentsStore();
+
+  const handlePurchase = async (selectedEvent: TEventWithRelations) => {
     setSelectedEvent(selectedEvent);
     setShowPurchaseModal(true);
   };
@@ -118,10 +116,7 @@ export const EventsList = ({ eventsList }: EventsListProps) => {
         ))}
 
         {showPurchaseModal && selectedEvent && (
-          <PurchaseModal
-            selectedEvent={selectedEvent}
-            handleClose={() => setShowPurchaseModal(false)}
-          />
+          <PurchaseModal handleClose={() => setShowPurchaseModal(false)} />
         )}
       </section>
     </>

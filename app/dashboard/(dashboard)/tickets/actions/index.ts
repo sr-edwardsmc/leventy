@@ -74,11 +74,12 @@ export const getGeneratedTicketsByEventId = async (
   });
 };
 
-export const getTicketing = async (eventId: string) => {
+export const getTicketing = async (eventId: string, isAdmin: boolean) => {
   return await db.ticketing.findMany({
     where: {
       eventId,
       isAvailable: true,
+      ...{ AND: isAdmin ? {} : { isInternal: false } },
     },
   });
 };
