@@ -12,15 +12,19 @@ import { TicketingSelector } from "../TicketingSelector/TicketingSelector";
 import { usePaymentsStore } from "@/store/payments";
 import { WelcomeView } from "../WelcomeView/WelcomeView";
 import { usePurchase } from "./hooks/usePurchase";
+import { ITicketingSelection } from "@/types";
 
 interface PurchaseModalProps {
   handleClose: () => void;
 }
 
 export const PurchaseModal = ({ handleClose }: PurchaseModalProps) => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  const { selectedEvent, paymentStep, setPaymentStep } = usePaymentsStore();
+  const {
+    paymentStep,
+    setPaymentStep,
+    purchaseTotalAmount,
+    isProcessingPayment,
+  } = usePaymentsStore();
 
   const { user } = useUserStore();
 
@@ -29,7 +33,7 @@ export const PurchaseModal = ({ handleClose }: PurchaseModalProps) => {
       <>
         {user && (
           <>
-            <h3 className="pb-2 text-xl font-bold text-black dark:text-white sm:text-2xl">
+            <h3 className="pb-2 text-2xl font-bold text-black dark:text-white sm:text-3xl">
               {paymentStepToComponentMap[paymentStep].title}
             </h3>
             <span className="mx-auto mb-6 inline-block h-1 w-22.5 rounded bg-primary"></span>
@@ -55,6 +59,7 @@ export const PurchaseModal = ({ handleClose }: PurchaseModalProps) => {
               {paymentStep !== 3 && (
                 <div className="w-full px-3">
                   <button
+                    disabled={paymentStep === 1 && purchaseTotalAmount == 0}
                     className="block w-full rounded border border-stroke bg-primary p-3 text-center font-medium text-white transition"
                     onClick={() => setPaymentStep(paymentStep + 1)}
                   >
@@ -71,14 +76,15 @@ export const PurchaseModal = ({ handleClose }: PurchaseModalProps) => {
                 </button>
               </div>
             </div>
-            <p className="mt-5 mb-5 text-md font-bold text-black">
-              ** Pagarás:{" "}
-              {`${Intl.NumberFormat("es-CO", {
-                style: "currency",
-                currency: "COP",
-                maximumFractionDigits: 0,
-              }).format(selectedEvent!.ticketing[0].price)}`}{" "}
-              {/* {""}+ 5% de comisión = {""}
+            {paymentStep !== 1 && (
+              <p className="mt-5 mb-5 text-md font-bold text-black">
+                ** Pagarás:{" "}
+                {`${Intl.NumberFormat("es-CO", {
+                  style: "currency",
+                  currency: "COP",
+                  maximumFractionDigits: 0,
+                }).format(purchaseTotalAmount)}`}{" "}
+                {/* {""}+ 5% de comisión = {""}
               {Intl.NumberFormat("es-CO", {
                 style: "currency",
                 currency: "COP",
@@ -87,9 +93,10 @@ export const PurchaseModal = ({ handleClose }: PurchaseModalProps) => {
                 selectedEvent.ticketing[0].price * 0.05 +
                   selectedEvent.ticketing[0].price
               )}{" "} */}
-              **
-            </p>
-            <div className="mt-4 mb-4 flex items-center">
+                **
+              </p>
+            )}
+            <div className="mt-4 mb-4 flex items-center flex-col sm:flex-row">
               <span className="icon-[wpf--security-checked] text-4xl flex-[15]"></span>
               <span className="text-sm flex-[80] text-justify">
                 Todas nuestras compras estan protegidas y son procesadas
@@ -102,16 +109,22 @@ export const PurchaseModal = ({ handleClose }: PurchaseModalProps) => {
       </>
       <>{!user && <WelcomeView />}</>
 
-      {isLoading && <Loader message="Procesando pago..." />}
+      {isProcessingPayment && <Loader message="Procesando pago..." />}
     </Modal>
   );
 };
 
 const PurchaseTicketingSelectorStep = () => {
-  const { selectedEvent, setSelectedTicketing } = usePaymentsStore();
+  const { selectedEvent, selectedTicketing, setSelectedTicketing } =
+    usePaymentsStore();
 
-  const handleTicketingSelection = (ticketing: Record<string, number>) => {
-    console.log(ticketing);
+  const handleTicketingSelection = ({
+    ticketingId,
+    amount,
+  }: ITicketingSelection) => {
+    const selectedTicketingCopy = { ...selectedTicketing };
+    selectedTicketingCopy[ticketingId] = amount;
+    setSelectedTicketing(selectedTicketingCopy);
   };
 
   return (
@@ -125,12 +138,20 @@ const PurchaseTicketingSelectorStep = () => {
 };
 
 const PurchasePaymentMethodSelectorStep = () => {
-  const { setSelectedPaymentMethod } = usePaymentsStore();
+  const { selectedPaymentMethod, setSelectedPaymentMethod } =
+    usePaymentsStore();
 
   return (
     <section className="flex flex-col gap-8 w-full justify-around items-center mb-8">
       <figure
-        className={`w-[160px] h-[60px] border-2 border-transparent hover:border-[rgb(60,80,224)] rounded-xl cursor-pointer shadow-10 overflow-hidden relative`}
+        className={`
+          w-[160px] h-[60px] border-2 border-transparent hover:border-[rgb(60,80,224)] rounded-xl cursor-pointer shadow-10 overflow-hidden relative
+          ${
+            selectedPaymentMethod === PAYMENT_METHOD.CARD
+              ? "border-[rgb(60,80,224)]"
+              : ""
+          }
+        `}
         onClick={() => {
           setSelectedPaymentMethod(PAYMENT_METHOD.CARD);
         }}
@@ -143,7 +164,13 @@ const PurchasePaymentMethodSelectorStep = () => {
         />
       </figure>
       <figure
-        className={`w-[160px] h-[60px] border-2 border-transparent hover:border-[rgb(60,80,224)] rounded-xl cursor-pointer shadow-10 overflow-hidden relative`}
+        className={`w-[160px] h-[60px] border-2 border-transparent hover:border-[rgb(60,80,224)] rounded-xl cursor-pointer shadow-10 overflow-hidden relative
+          ${
+            selectedPaymentMethod === PAYMENT_METHOD.PSE
+              ? "border-[rgb(60,80,224)]"
+              : ""
+          }
+        `}
         onClick={() => {
           setSelectedPaymentMethod(PAYMENT_METHOD.PSE);
         }}
@@ -160,23 +187,12 @@ const PurchasePaymentMethodSelectorStep = () => {
 };
 
 const PurchasePaymentFormStep = () => {
-  const { selectedEvent, selectedPaymentMethod } = usePaymentsStore();
-  const { resolvePaymentProcess } = usePurchase();
+  const { selectedPaymentMethod } = usePaymentsStore();
 
   return (
     <>
-      {selectedPaymentMethod === PAYMENT_METHOD.CARD && (
-        <CreditCardForm
-          orderAmount={selectedEvent!.ticketing[0].price}
-          onSubmitPayment={resolvePaymentProcess}
-        />
-      )}
-      {selectedPaymentMethod === PAYMENT_METHOD.PSE && (
-        <PSEForm
-          orderAmount={selectedEvent!.ticketing[0].price}
-          onSubmitPayment={resolvePaymentProcess}
-        />
-      )}
+      {selectedPaymentMethod === PAYMENT_METHOD.CARD && <CreditCardForm />}
+      {selectedPaymentMethod === PAYMENT_METHOD.PSE && <PSEForm />}
     </>
   );
 };

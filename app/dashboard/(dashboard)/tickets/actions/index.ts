@@ -95,6 +95,7 @@ export const generateTicket = async (data: {
   city: string;
   generatedById: string;
   ticketingId: string;
+  ticketingName: string;
 }) => {
   const {
     fullName,
@@ -107,6 +108,7 @@ export const generateTicket = async (data: {
     city,
     generatedById,
     ticketingId,
+    ticketingName,
   } = data;
 
   try {
@@ -141,7 +143,7 @@ export const generateTicket = async (data: {
 
     await page.setContent(htmlContent!);
 
-    const pdfPath = `/tmp/ticket-${randomId}.pdf`;
+    const pdfPath = `/tmp/ticket-${randomId}-${ticketingName}.pdf`;
     await page.pdf({ path: pdfPath, format: "A4" });
 
     page.close().then(() => {});
@@ -246,6 +248,9 @@ export const generateMassiveTickets = async (
         generatedById: userId,
         ticketingId: record.ticketingId!,
         gender: record.gender,
+        ticketingName: eventTicketing.find(
+          (ticketing) => ticketing.id === record.ticketingId
+        )?.name!,
       });
     })
   );

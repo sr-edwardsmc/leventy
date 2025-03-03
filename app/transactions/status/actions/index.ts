@@ -14,39 +14,46 @@ export const getTransactionDetails = async (transactionId: string) => {
 export const processApprovedTransaction = async (
   providerTransactionId: string
 ) => {
-  const transaction = await db.transaction.findFirst({
+  const transactions = await db.transaction.findMany({
     where: { providerTransactionId: providerTransactionId },
     include: { user: true },
   });
 
-  if (!transaction) {
+  const ticketings = await db.ticketing.findMany({
+    where: { eventId: transactions[0].eventId },
+  });
+
+  if (!transactions.length) {
     throw new Error("Transaction not found");
   }
 
-  const isAlreadyProcessed =
-    transaction.status === PaymentStatus.APPROVED ||
-    transaction.status === PaymentStatus.DECLINED;
+  if (transactions[0].status === PaymentStatus.APPROVED) {
+    throw new Error("Transaction already processed");
+  }
 
-  if (isAlreadyProcessed) return;
+  for (const transaction of transactions) {
+    const response = await generateTicket({
+      eventId: transaction.eventId,
+      fullName: transaction.user?.name! + " " + transaction.user?.lastName!,
+      email: transaction.user?.email!,
+      phone: transaction.user?.phone!,
+      city: transaction.user?.city!,
+      gender: transaction.user?.gender!,
+      idNumber: transaction.user?.idNumber!,
+      birthday: transaction.user?.birthday!,
+      generatedById: transaction.user?.id!,
+      ticketingId: transaction.ticketingId!,
+      ticketingName: ticketings.find(
+        (ticketing) => ticketing.id === transaction.ticketingId
+      )?.name!,
+    });
 
-  const response = await generateTicket({
-    eventId: transaction.eventId,
-    fullName: transaction.user?.name! + " " + transaction.user?.lastName!,
-    email: transaction.user?.email!,
-    phone: transaction.user?.phone!,
-    city: transaction.user?.city!,
-    gender: transaction.user?.gender!,
-    idNumber: transaction.user?.idNumber!,
-    birthday: transaction.user?.birthday!,
-    generatedById: transaction.user?.id!,
-    ticketingId: transaction.ticketingId!,
-  });
-
-  await db.transaction.update({
-    where: { id: transaction.id },
-    data: {
-      status: PaymentStatus.APPROVED,
-      ticketId: response?.data.id,
-    },
-  });
+    await db.transaction.update({
+      where: { id: transaction.id },
+      data: {
+        status: PaymentStatus.APPROVED,
+        ticketId: response?.data.id,
+      },
+    });
+  }
 };

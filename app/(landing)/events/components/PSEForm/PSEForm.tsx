@@ -1,20 +1,23 @@
 import { PAYMENT_METHOD } from "@/types/wompi";
 import React from "react";
 import { usePSEForm } from "./hooks/userPSEForm";
+import { usePaymentsStore } from "@/store/payments";
+import { usePurchase } from "../PurchaseModal/hooks/usePurchase";
 
-interface PSEFormProps {
-  onSubmitPayment: (paymentMethod: PAYMENT_METHOD, data: any) => void;
-  orderAmount: number;
-}
+const PSEForm: React.FC = () => {
+  const { purchaseTotalAmount } = usePaymentsStore();
+  const { resolvePaymentProcess } = usePurchase();
 
-const PSEForm: React.FC<PSEFormProps> = ({ orderAmount, onSubmitPayment }) => {
   const {
     handleSubmit,
     register,
     errors,
     pseFinancialInstitutions,
     handleFormSubmit,
-  } = usePSEForm({ orderAmount, onSubmitPayment });
+  } = usePSEForm({
+    orderAmount: purchaseTotalAmount,
+    onSubmitPayment: resolvePaymentProcess,
+  });
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="mt-6">

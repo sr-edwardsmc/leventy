@@ -1,9 +1,14 @@
+import { usePaymentsStore } from "@/store/payments";
+import { ITicketingSelection } from "@/types";
 import { Ticketing } from "@prisma/client";
 import { useEffect, useState } from "react";
 
 interface TicketingSelectorProps {
   ticketing: Ticketing[];
-  handleTicketingSelection: (selectedTickets: Record<string, number>) => void;
+  handleTicketingSelection: ({
+    ticketingId,
+    amount,
+  }: ITicketingSelection) => void;
 }
 
 const TicketingSelector = ({
@@ -11,19 +16,23 @@ const TicketingSelector = ({
   handleTicketingSelection,
 }: TicketingSelectorProps) => {
   const [totalAmount, setTotalAmount] = useState<number>(0);
-  const [selectedTickets, setSelectedTickets] = useState<
-    Record<string, number>
-  >({});
+  const [selectedTickets, setSelectedTickets] = useState<Record<
+    string,
+    number
+  > | null>(null);
+
+  const { setPurchaseTotalAmount } = usePaymentsStore();
 
   const calculateTotalAmount = () => {
     let total = 0;
-    for (const [ticketingId, amount] of Object.entries(selectedTickets)) {
+    for (const [ticketingId, amount] of Object.entries(selectedTickets!)) {
       const ticket = ticketing.find((ticket) => ticket.id === ticketingId);
       if (ticket) {
         total += ticket.price * amount;
       }
     }
     setTotalAmount(total);
+    setPurchaseTotalAmount(total);
   };
 
   const handleAmountChange = (ticketingId: string, amount: number) => {
@@ -31,11 +40,13 @@ const TicketingSelector = ({
       ...prev,
       [ticketingId]: amount,
     }));
+
+    handleTicketingSelection({ ticketingId, amount });
   };
 
   useEffect(() => {
+    if (selectedTickets === null) return;
     calculateTotalAmount();
-    handleTicketingSelection(selectedTickets);
   }, [selectedTickets]);
 
   return (
@@ -59,8 +70,8 @@ const TicketingSelector = ({
       </ul>
       <div className="w-full h-[1px] bg-black mx-4"></div>
       <article className="w-full justify-between">
-        <span className="text-black text-2xl font-bold">Total: </span>
-        <span className="text-black text-2xl font-bold">
+        <span className="text-black text-xl font-bold">
+          Total:{" "}
           {Intl.NumberFormat("es-CO", {
             style: "currency",
             currency: "COP",

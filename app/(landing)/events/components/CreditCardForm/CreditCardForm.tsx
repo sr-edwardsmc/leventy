@@ -2,18 +2,17 @@ import InputMask from "react-input-mask";
 
 import { useCreditCardForm } from "./hooks/useCreditCardForm";
 import { PAYMENT_METHOD } from "@/types/wompi";
+import { usePaymentsStore } from "@/store/payments";
+import { usePurchase } from "../PurchaseModal/hooks/usePurchase";
 
-interface CreditCardFormProps {
-  orderAmount: number;
-  onSubmitPayment: (paymentMethod: PAYMENT_METHOD, data: any) => void;
-}
-
-export const CreditCardForm = ({
-  orderAmount,
-  onSubmitPayment,
-}: CreditCardFormProps) => {
+export const CreditCardForm = () => {
+  const { purchaseTotalAmount } = usePaymentsStore();
+  const { resolvePaymentProcess } = usePurchase();
   const { register, handleSubmit, errors, handlePaymentSubmit } =
-    useCreditCardForm({ orderAmount, onSubmitPayment });
+    useCreditCardForm({
+      orderAmount: purchaseTotalAmount,
+      onSubmitPayment: resolvePaymentProcess,
+    });
 
   return (
     <form className="w-full mb-4" onSubmit={handleSubmit(handlePaymentSubmit)}>
@@ -55,7 +54,7 @@ export const CreditCardForm = ({
             <span className="text-red">Este campo es requerido</span>
           )}
         </div>
-        <div className="flex space-x-4">
+        <div className="flex flex-col md:flex-row">
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700">
               Fecha de vencimiento Mes/Año
@@ -77,7 +76,7 @@ export const CreditCardForm = ({
               <span className="text-red">Este campo es requerido</span>
             )}
           </div>
-          <div className="flex-1">
+          <div className="flex-1 flex flex-col justify-between md:block">
             <label className="block text-sm font-medium text-gray-700">
               CVC
             </label>
@@ -93,7 +92,9 @@ export const CreditCardForm = ({
               })}
             />
             {errors.cvc && (
-              <span className="text-red">Este campo es requerido</span>
+              <span className="text-red">
+                Este campo es requerido {errors.cvc.message?.toString()}
+              </span>
             )}
           </div>
         </div>

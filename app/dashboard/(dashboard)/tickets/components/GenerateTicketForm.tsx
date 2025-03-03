@@ -46,7 +46,14 @@ function GenerateTicketForm({ events, adminUsers }: GenerateTicketFormProps) {
 
   const handleFormSubmitAction: () => void = handleSubmit(async (data) => {
     setIsLoading(true);
-    const dataWithAuthoredBy = { ...data, generatedById: user!.id };
+    const ticketingName = eventTicketing.find(
+      (ticketing) => ticketing.id === data.ticketingId
+    )?.name;
+    const dataWithAuthoredBy = {
+      ...data,
+      generatedById: user!.id,
+      ticketingName,
+    };
     const response = await generateTicket(dataWithAuthoredBy);
     if (response?.status === "success") {
       alert("Ticket generado con éxito");
