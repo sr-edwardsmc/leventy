@@ -8,6 +8,7 @@ import { TEvent } from "@/types/events";
 import { generateTicket, getTicketing } from "../actions";
 import { useUserStore } from "@/store/userStore";
 import { Loader } from "@/components/Loader/Loader";
+import { Role } from "@prisma/client";
 
 const formInitialValues = {
   eventId: "",
@@ -45,7 +46,14 @@ function GenerateTicketForm({ events, adminUsers }: GenerateTicketFormProps) {
 
   const handleFormSubmitAction: () => void = handleSubmit(async (data) => {
     setIsLoading(true);
-    const dataWithAuthoredBy = { ...data, generatedById: user!.id };
+    const ticketingName = eventTicketing.find(
+      (ticketing) => ticketing.id === data.ticketingId
+    )?.name;
+    const dataWithAuthoredBy = {
+      ...data,
+      generatedById: user!.id,
+      ticketingName,
+    };
     const response = await generateTicket(dataWithAuthoredBy);
     if (response?.status === "success") {
       alert("Ticket generado con éxito");
@@ -67,7 +75,10 @@ function GenerateTicketForm({ events, adminUsers }: GenerateTicketFormProps) {
   useEffect(() => {
     if (!selectedEvent) return;
     (async () => {
-      const ticketing = await getTicketing(selectedEvent);
+      const isAdmin =
+        user?.role === Role.COLLECTIVE_ADMIN ||
+        user?.role === Role.COLLECTIVE_MEMBER;
+      const ticketing = await getTicketing(selectedEvent, isAdmin);
       setEventTicketing(ticketing);
     })();
   }, [selectedEvent]);

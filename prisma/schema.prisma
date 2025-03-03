@@ -163,4 +163,7 @@ model Ticketing {
   eventId String
   soldTickets Ticket[]
   isAvailable Boolean @default(true)
+  isInternal Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime? @updatedAt
 }

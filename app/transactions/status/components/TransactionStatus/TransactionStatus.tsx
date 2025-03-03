@@ -6,6 +6,7 @@ import { ApprovedTransactionModal } from "../ApprovedTransactionModal/ApprovedTr
 import { DeclinedTransactionModal } from "../DeclinedTransactionModal/DeclinedTransactionModal";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { PaymentStatus } from "@prisma/client";
 
 const TransactionStatusComponent = () => {
   const params = useSearchParams();
@@ -20,11 +21,11 @@ const TransactionStatusComponent = () => {
     return <Loader message="Validando transacción" />;
   }
 
-  if (transaction?.status === "APPROVED") {
+  if (transaction?.status === PaymentStatus.APPROVED) {
     return <ApprovedTransactionModal />;
   }
 
-  if (transaction?.status === "DECLINED") {
+  if (transaction?.status === PaymentStatus.DECLINED) {
     return (
       <DeclinedTransactionModal rejectedReason={transaction.status_message} />
     );

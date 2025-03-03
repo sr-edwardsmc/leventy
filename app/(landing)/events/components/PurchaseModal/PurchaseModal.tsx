@@ -3,159 +3,70 @@ import Image from "next/image";
 
 import { Modal } from "@/components/Modal/Modal";
 import { CreditCardForm } from "../CreditCardForm/CreditCardForm";
-import { usePurchase } from "./hooks/usePurchase";
 import { Loader } from "@/components/Loader/Loader";
 import { PAYMENT_METHOD } from "@/types/wompi";
 import PSEForm from "../PSEForm/PSEForm";
 import { useUserStore } from "@/store/userStore";
-import { TEvent } from "@/types/events";
 import { Ticketing } from "@prisma/client";
+import { TicketingSelector } from "../TicketingSelector/TicketingSelector";
+import { usePaymentsStore } from "@/store/payments";
+import { WelcomeView } from "../WelcomeView/WelcomeView";
+import { usePurchase } from "./hooks/usePurchase";
+import { ITicketingSelection } from "@/types";
 
 interface PurchaseModalProps {
-  selectedEvent: TEvent & { ticketing: Ticketing[] };
   handleClose: () => void;
 }
 
-export const PurchaseModal = ({
-  selectedEvent,
-  handleClose,
-}: PurchaseModalProps) => {
-  const [selectedPaymentMethod, setSelectedPaymentMethod] =
-    useState<string>("");
-
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  const { processCreditCardPayment, processPSEPayment } = usePurchase({
-    selectedEvent,
-  });
-
-  const [modalTitle, setModalTitle] = useState<string>(
-    "Que método de pago deseas usar?"
-  );
+export const PurchaseModal = ({ handleClose }: PurchaseModalProps) => {
+  const {
+    paymentStep,
+    setPaymentStep,
+    purchaseTotalAmount,
+    isProcessingPayment,
+  } = usePaymentsStore();
 
   const { user } = useUserStore();
-
-  const processPayment = async (paymentMethod: PAYMENT_METHOD, data: any) => {
-    setIsLoading(true);
-    const paymentResolver = {
-      ["CARD"]: async () => {
-        await processCreditCardPayment({
-          cardData: {
-            card_holder: data.cardHolder,
-            number: data.cardNumber,
-            cvc: data.cvc,
-            exp_month: data.expirationDate.split("/")[0],
-            exp_year: data.expirationDate.split("/")[1],
-          },
-          amount: data.amount,
-          installments: data.installments,
-        });
-      },
-      ["NEQUI"]: () => {},
-      ["DAVIPLATA"]: () => {},
-      ["PSE"]: async () => {
-        await processPSEPayment({
-          amount: data.amount,
-          customerEmail: user?.email,
-          paymentMethod: {
-            type: PAYMENT_METHOD.PSE,
-            user_type: data.personType,
-            user_legal_id_type: user?.idType,
-            user_legal_id: user?.idNumber,
-            financial_institution_code: data.financialInstitutionId,
-            payment_description: data.paymentDescription,
-          },
-          customerData: {
-            full_name: user?.name,
-            phone_number: user?.phone,
-          },
-        });
-      },
-    };
-    await paymentResolver[paymentMethod]();
-    setIsLoading(false);
-  };
 
   return (
     <Modal opened handleClose={handleClose}>
       <>
         {user && (
           <>
-            <h3 className="pb-2 text-xl font-bold text-black dark:text-white sm:text-2xl">
-              {modalTitle}
+            <h3 className="pb-2 text-2xl font-bold text-black dark:text-white sm:text-3xl">
+              {paymentStepToComponentMap[paymentStep].title}
             </h3>
             <span className="mx-auto mb-6 inline-block h-1 w-22.5 rounded bg-primary"></span>
-            {selectedPaymentMethod === "" && (
-              <section className="flex flex-col gap-8 w-full justify-around items-center mb-8">
-                <figure
-                  className={`w-[160px] h-[60px] border-2 border-transparent hover:border-[rgb(60,80,224)] rounded-xl cursor-pointer shadow-10 overflow-hidden relative`}
-                  onClick={() => {
-                    setSelectedPaymentMethod(PAYMENT_METHOD.CARD);
-                    setModalTitle("Ingresa tu email y los datos de tu tarjeta");
-                  }}
-                >
-                  <Image
-                    src="/cards-logo.png"
-                    alt="Tarjetas Visa - Mastercard"
-                    layout="fill"
-                    objectFit="contain"
-                  />
-                </figure>
-                <figure
-                  className={`w-[160px] h-[60px] border-2 border-transparent hover:border-[rgb(60,80,224)] rounded-xl cursor-pointer shadow-10 overflow-hidden relative`}
-                  onClick={() => {
-                    setSelectedPaymentMethod(PAYMENT_METHOD.PSE);
-                    setModalTitle("Selecciona tu entidad financiera");
-                  }}
-                >
-                  <Image
-                    src="/logo-pse.png"
-                    alt="PSE"
-                    layout="fill"
-                    objectFit="contain"
-                  />
-                </figure>
-              </section>
-            )}
-            {selectedPaymentMethod === PAYMENT_METHOD.CARD && (
-              <CreditCardForm
-                orderAmount={selectedEvent.ticketing[0].price}
-                onSubmitPayment={processPayment}
-              />
-            )}
-            {selectedPaymentMethod === PAYMENT_METHOD.PSE && (
-              <PSEForm
-                orderAmount={selectedEvent.ticketing[0].price}
-                onSubmitPayment={processPayment}
-              />
-            )}
-            <p className="mt-5 mb-5 text-md font-bold text-black">
-              ** Pagarás:{" "}
-              {`${Intl.NumberFormat("es-CO", {
-                style: "currency",
-                currency: "COP",
-                maximumFractionDigits: 0,
-              }).format(selectedEvent.ticketing[0].price)}`}{" "}
-              {/* {""}+ 5% de comisión = {""}
-              {Intl.NumberFormat("es-CO", {
-                style: "currency",
-                currency: "COP",
-                maximumFractionDigits: 0,
-              }).format(
-                selectedEvent.ticketing[0].price * 0.05 +
-                  selectedEvent.ticketing[0].price
-              )}{" "} */}
-              **
-            </p>
-            <div className="mt-4 mb-4 flex items-center">
-              <span className="icon-[wpf--security-checked] text-4xl flex-[15]"></span>
-              <span className="text-sm flex-[80] text-justify">
-                Todas nuestras compras estan protegidas y son procesadas
-                directmente por Wompi - Bancolombia. No almacenamos los datos de
-                tu tarjeta.
-              </span>
-            </div>
+            {paymentStepToComponentMap[paymentStep].component}
+
             <div className="-mx-3 flex flex-wrap gap-y-4">
+              {/* <div className="w-full px-3 flex justify-between">
+                <button
+                  className="px-4 py-2 bg-primary rounded-full text-white"
+                  onClick={() => setPaymentStep(paymentStep - 1)}
+                >
+                  {" "}
+                  {"<"}{" "}
+                </button>
+                <button
+                  className="px-4 py-2 bg-primary rounded-full text-white"
+                  onClick={() => setPaymentStep(paymentStep + 1)}
+                >
+                  {" "}
+                  {">"}{" "}
+                </button>
+              </div> */}
+              {paymentStep !== 3 && (
+                <div className="w-full px-3">
+                  <button
+                    disabled={paymentStep === 1 && purchaseTotalAmount == 0}
+                    className="block w-full rounded border border-stroke bg-primary p-3 text-center font-medium text-white transition"
+                    onClick={() => setPaymentStep(paymentStep + 1)}
+                  >
+                    Continuar
+                  </button>
+                </div>
+              )}
               <div className="w-full px-3">
                 <button
                   onClick={() => handleClose()}
@@ -165,33 +76,141 @@ export const PurchaseModal = ({
                 </button>
               </div>
             </div>
+            {paymentStep !== 1 && (
+              <p className="mt-5 mb-5 text-md font-bold text-black">
+                ** Pagarás:{" "}
+                {`${Intl.NumberFormat("es-CO", {
+                  style: "currency",
+                  currency: "COP",
+                  maximumFractionDigits: 0,
+                }).format(purchaseTotalAmount)}`}{" "}
+                {/* {""}+ 5% de comisión = {""}
+              {Intl.NumberFormat("es-CO", {
+                style: "currency",
+                currency: "COP",
+                maximumFractionDigits: 0,
+              }).format(
+                selectedEvent.ticketing[0].price * 0.05 +
+                  selectedEvent.ticketing[0].price
+              )}{" "} */}
+                **
+              </p>
+            )}
+            <div className="mt-4 mb-4 flex items-center flex-col sm:flex-row">
+              <span className="icon-[wpf--security-checked] text-4xl flex-[15]"></span>
+              <span className="text-sm flex-[80] text-justify">
+                Todas nuestras compras estan protegidas y son procesadas
+                directmente por Wompi - Bancolombia. No almacenamos los datos de
+                tu tarjeta.
+              </span>
+            </div>
           </>
         )}
       </>
-      <>
-        {!user && (
-          <>
-            <h3 className="pb-2 text-xl font-bold text-black dark:text-white sm:text-2xl">
-              ¡Bienvenid@! 🎉
-            </h3>
-            <span className="mx-auto mb-6 inline-block h-1 w-22.5 rounded bg-primary"></span>
-            <p className="text-center text-black dark:text-white">
-              Necesitamos algunos datos para el proceso de pago y registrar tu
-              ingreso para el evento, por favor{" "}
-              <a href="/login" className="text-primary">
-                inicia sesión
-              </a>{" "}
-              o{" "}
-              <a href="/signup" className="text-primary">
-                registrate
-              </a>{" "}
-              para continuar. Gracias!
-            </p>
-          </>
-        )}
-      </>
+      <>{!user && <WelcomeView />}</>
 
-      {isLoading && <Loader message="Procesando pago..." />}
+      {isProcessingPayment && <Loader message="Procesando pago..." />}
     </Modal>
   );
+};
+
+const PurchaseTicketingSelectorStep = () => {
+  const { selectedEvent, selectedTicketing, setSelectedTicketing } =
+    usePaymentsStore();
+
+  const handleTicketingSelection = ({
+    ticketingId,
+    amount,
+  }: ITicketingSelection) => {
+    const selectedTicketingCopy = { ...selectedTicketing };
+    selectedTicketingCopy[ticketingId] = amount;
+    setSelectedTicketing(selectedTicketingCopy);
+  };
+
+  return (
+    <>
+      <TicketingSelector
+        ticketing={selectedEvent!.ticketing}
+        handleTicketingSelection={handleTicketingSelection}
+      />
+    </>
+  );
+};
+
+const PurchasePaymentMethodSelectorStep = () => {
+  const { selectedPaymentMethod, setSelectedPaymentMethod } =
+    usePaymentsStore();
+
+  return (
+    <section className="flex flex-col gap-8 w-full justify-around items-center mb-8">
+      <figure
+        className={`
+          w-[160px] h-[60px] border-2 border-transparent hover:border-[rgb(60,80,224)] rounded-xl cursor-pointer shadow-10 overflow-hidden relative
+          ${
+            selectedPaymentMethod === PAYMENT_METHOD.CARD
+              ? "border-[rgb(60,80,224)]"
+              : ""
+          }
+        `}
+        onClick={() => {
+          setSelectedPaymentMethod(PAYMENT_METHOD.CARD);
+        }}
+      >
+        <Image
+          src="/cards-logo.png"
+          alt="Tarjetas Visa - Mastercard"
+          layout="fill"
+          objectFit="contain"
+        />
+      </figure>
+      <figure
+        className={`w-[160px] h-[60px] border-2 border-transparent hover:border-[rgb(60,80,224)] rounded-xl cursor-pointer shadow-10 overflow-hidden relative
+          ${
+            selectedPaymentMethod === PAYMENT_METHOD.PSE
+              ? "border-[rgb(60,80,224)]"
+              : ""
+          }
+        `}
+        onClick={() => {
+          setSelectedPaymentMethod(PAYMENT_METHOD.PSE);
+        }}
+      >
+        <Image
+          src="/logo-pse.png"
+          alt="PSE"
+          layout="fill"
+          objectFit="contain"
+        />
+      </figure>
+    </section>
+  );
+};
+
+const PurchasePaymentFormStep = () => {
+  const { selectedPaymentMethod } = usePaymentsStore();
+
+  return (
+    <>
+      {selectedPaymentMethod === PAYMENT_METHOD.CARD && <CreditCardForm />}
+      {selectedPaymentMethod === PAYMENT_METHOD.PSE && <PSEForm />}
+    </>
+  );
+};
+
+const paymentStepToComponentMap: Record<
+  number,
+  { title: string; component: JSX.Element }
+> = {
+  1: {
+    title: "Selecciona la etapa",
+    component: <PurchaseTicketingSelectorStep />,
+  },
+  2: {
+    title: "Selecciona el método de pago",
+    component: <PurchasePaymentMethodSelectorStep />,
+  },
+  3: {
+    title: "Ingresa los datos de pago",
+    component: <PurchasePaymentFormStep />,
+  },
 };
