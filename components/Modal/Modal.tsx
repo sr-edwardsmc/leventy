@@ -43,7 +43,7 @@ const Modal: React.FC<{
       >
         <div
           ref={modal}
-          className="w-full max-w-142.5 rounded-lg bg-white px-8 py-12 text-center dark:bg-boxdark md:px-17.5 md:py-15"
+          className="w-full h-[90%] md:h-auto overflow-scroll max-w-142.5 rounded-lg bg-white px-8 py-12 text-center dark:bg-boxdark md:px-17.5 md:py-15"
         >
           {children}
         </div>

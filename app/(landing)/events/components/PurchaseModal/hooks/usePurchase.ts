@@ -1,9 +1,5 @@
-import { useEffect, useState } from "react";
-import {
-  Transaction as InternalTransaction,
-  PaymentStatus,
-  Ticketing,
-} from "@prisma/client";
+import { useEffect } from "react";
+import { PaymentStatus } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import ShortUUID from "short-unique-id";
 
@@ -18,33 +14,31 @@ import {
   tokenizeCard,
 } from "@/app/(landing)/events/actions";
 import {
-  ICreateTransactionInput,
-  IFinancialInstitutionsResponse,
-  ITokenizeCardInput,
-  ITokenizeCardResponse,
-  ITransactionResponse,
+  type ICreateTransactionInput,
+  type IFinancialInstitutionsResponse,
+  type ITokenizeCardInput,
+  type ITokenizeCardResponse,
+  type ITransactionResponse,
   PAYMENT_METHOD,
 } from "@/types/wompi";
 import { getTransactionDetails } from "@/app/transactions/status/actions";
 import { useUserStore } from "@/store/userStore";
-import { generateTicket } from "@/app/dashboard/(dashboard)/tickets/actions";
-import { TEvent } from "@/types/events";
+import { CURRENCY, PAYMENT_PROVIDER } from "@/types";
 
 const uuid = new ShortUUID();
 
-export const usePurchase = ({
-  selectedEvent,
-}: {
-  selectedEvent: TEvent & { ticketing: Ticketing[] };
-}) => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
+export const usePurchase = () => {
   const router = useRouter();
+
   const {
     acceptanceToken,
     pseFinancialInstitutions,
     setAcceptanceToken,
     setPSEFinancialInstitutions,
+    selectedEvent,
+    selectedTicketing,
+    setIsProcessingPayment,
+    purchaseTotalAmount,
   } = usePaymentsStore();
 
   const { user: loggedUser } = useUserStore();
@@ -70,6 +64,50 @@ export const usePurchase = ({
     setPSEFinancialInstitutions(response.data);
   };
 
+  const resolvePaymentProcess = async (
+    paymentMethod: PAYMENT_METHOD,
+    data: any
+  ) => {
+    setIsProcessingPayment(true);
+    const paymentResolver = {
+      ["CARD"]: async () => {
+        await processCreditCardPayment({
+          cardData: {
+            card_holder: data.cardHolder,
+            number: data.cardNumber,
+            cvc: data.cvc,
+            exp_month: data.expirationDate.split("/")[0],
+            exp_year: data.expirationDate.split("/")[1],
+          },
+          amount: data.amount,
+          installments: data.installments,
+        });
+      },
+      ["NEQUI"]: () => {},
+      ["DAVIPLATA"]: () => {},
+      ["PSE"]: async () => {
+        await processPSEPayment({
+          amount: data.amount,
+          customerEmail: loggedUser?.email,
+          paymentMethod: {
+            type: PAYMENT_METHOD.PSE,
+            user_type: data.personType,
+            user_legal_id_type: loggedUser?.idType,
+            user_legal_id: loggedUser?.idNumber,
+            financial_institution_code: data.financialInstitutionId,
+            payment_description: data.paymentDescription,
+          },
+          customerData: {
+            full_name: loggedUser?.name,
+            phone_number: loggedUser?.phone,
+          },
+        });
+      },
+    };
+    await paymentResolver[paymentMethod]();
+    setIsProcessingPayment(false);
+  };
+
   const processCreditCardPayment = async ({
     cardData,
     amount,
@@ -79,13 +117,13 @@ export const usePurchase = ({
     amount: number;
     installments: number;
   }) => {
-    setIsLoading(true);
+    setIsProcessingPayment(true);
     if (!loggedUser) return;
     const amountInCents: number = amount * 100;
     const transactionReference = await uuid.randomUUID(10);
     const transactionSignature = await createTransactionSignature({
       amount: amountInCents,
-      currency: "COP",
+      currency: CURRENCY.COP,
       expirationTime: "",
       transactionReference: transactionReference,
     });
@@ -96,7 +134,7 @@ export const usePurchase = ({
       const transactionPayload: ICreateTransactionInput = {
         reference: transactionReference,
         amount_in_cents: amountInCents,
-        currency: "COP",
+        currency: CURRENCY.COP,
         payment_method: {
           type: PAYMENT_METHOD.CARD,
           token: tokenizedCard?.data.id,
@@ -111,26 +149,17 @@ export const usePurchase = ({
         transactionPayload
       );
 
-      const internalTransaction: InternalTransaction =
-        await createInternalTransaction({
-          amount: amount,
-          eventId: selectedEvent.id,
-          provider: "WOMPI_CREDIT_CARD",
-          providerTransactionId: transactionResponse.data.id,
-          providerTransactionReference: transactionReference,
-          userId: loggedUser.id,
-          ticketingId: selectedEvent.ticketing[0].id,
-          ticketId: null,
-          status: PaymentStatus.PENDING,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
+      await forwardCreateInternalTransactions(
+        PAYMENT_PROVIDER.WOMPI_CARD,
+        transactionResponse.data.id,
+        transactionReference
+      );
 
       router.replace(`/transactions/status?id=${transactionResponse.data.id}`);
     } catch (error) {
       console.error(error);
     } finally {
-      setIsLoading(false);
+      setIsProcessingPayment(false);
     }
   };
 
@@ -141,12 +170,12 @@ export const usePurchase = ({
     customerData,
   }: any) => {
     if (!loggedUser) return;
-    setIsLoading(true);
+    setIsProcessingPayment(true);
     const amountInCents: number = amount * 100;
     const transactionReference = await uuid.randomUUID(10);
     const transactionSignature = await createTransactionSignature({
       amount: amountInCents,
-      currency: "COP",
+      currency: CURRENCY.COP,
       expirationTime: "",
       transactionReference: transactionReference,
     });
@@ -155,11 +184,11 @@ export const usePurchase = ({
       const transactionPayload: ICreateTransactionInput = {
         reference: transactionReference,
         amount_in_cents: amountInCents,
-        currency: "COP",
+        currency: CURRENCY.COP,
         payment_method: {
           ...paymentMethod,
           payment_description:
-            "Pago de boleto de ingreso para el evento: " + selectedEvent.name,
+            "Pago de boleto de ingreso para el evento: " + selectedEvent!.name,
         },
         customer_email: customerEmail,
         acceptance_token: acceptanceToken,
@@ -172,20 +201,11 @@ export const usePurchase = ({
         transactionPayload
       );
 
-      const internalTransaction: InternalTransaction =
-        await createInternalTransaction({
-          amount: amount,
-          eventId: selectedEvent.id,
-          provider: "WOMPI-PSE",
-          providerTransactionId: transactionResponse.data.id,
-          providerTransactionReference: transactionReference,
-          userId: loggedUser?.id!,
-          ticketingId: selectedEvent.ticketing[0].id,
-          ticketId: null,
-          status: PaymentStatus.PENDING,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
+      await forwardCreateInternalTransactions(
+        PAYMENT_PROVIDER.WOMPI_PSE,
+        transactionResponse.data.id,
+        transactionReference
+      );
 
       // longPolling to check if there is a redirect_url within the transactionResponse.data.payment_method.extra object
       // if there is, redirect to that url
@@ -193,7 +213,7 @@ export const usePurchase = ({
     } catch (error) {
       console.error(error);
     } finally {
-      setIsLoading(false);
+      setIsProcessingPayment(false);
     }
   };
 
@@ -215,9 +235,44 @@ export const usePurchase = ({
       await new Promise((resolve) => setTimeout(resolve, pollInterval));
     }
 
-    setIsLoading(false);
+    setIsProcessingPayment(false);
     console.error("Transaction polling timed out");
   };
 
-  return { isLoading, processCreditCardPayment, processPSEPayment };
+  // @Documentation
+  // This method is responsible for creating as many tickets
+  // as the user purchased in the Transactions table
+  // Including different ticketing types and quantities.
+  // Will be used to generate tickets for massive purchases
+  // Checking for all the records in the Transactions database.
+  const forwardCreateInternalTransactions = async (
+    provider: PAYMENT_PROVIDER,
+    providerTransactionId: string,
+    providerTransactionReference: string
+  ) => {
+    const currentTransactions = { ...selectedTicketing };
+    for (const [ticketingId, amount] of Object.entries(currentTransactions)) {
+      for (let i = 0; i < amount; i++) {
+        await createInternalTransaction({
+          amount: purchaseTotalAmount,
+          eventId: selectedEvent!.id,
+          provider,
+          providerTransactionId,
+          providerTransactionReference,
+          userId: loggedUser?.id!,
+          ticketingId: ticketingId,
+          ticketId: null,
+          status: PaymentStatus.PENDING,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+    }
+  };
+
+  return {
+    processCreditCardPayment,
+    processPSEPayment,
+    resolvePaymentProcess,
+  };
 };

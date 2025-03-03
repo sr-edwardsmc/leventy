@@ -24,8 +24,8 @@ export const getAllEventsOrdered = async () => {
       include: {
         ticketing: {
           where: {
-            startDate: { lte: new Date().toISOString() },
-            endDate: { gte: new Date().toISOString() },
+            isAvailable: true,
+            isInternal: false,
           },
         },
       },

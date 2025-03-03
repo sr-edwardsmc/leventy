@@ -28,7 +28,7 @@ export const PublicHeader = () => {
       </nav>
       <h1
         className={
-          "mt-[-10px] absolute right-[40%] md:right-[45%] text-6xl font-bold text-primary ml-4 cursor-pointer " +
+          "mt-[-10px] absolute left-1/2 transform -translate-x-[60%] text-6xl font-bold text-primary ml-4 cursor-pointer " +
           birthstone.className
         }
       >
