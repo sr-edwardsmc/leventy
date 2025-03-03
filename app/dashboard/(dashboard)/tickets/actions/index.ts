@@ -143,7 +143,7 @@ export const generateTicket = async (data: {
 
     await page.setContent(htmlContent!);
 
-    const pdfPath = `/tmp/ticket-${randomId}-${ticketingName}.pdf`;
+    const pdfPath = `/tmp/${ticketingName}-${randomId}.pdf`;
     await page.pdf({ path: pdfPath, format: "A4" });
 
     page.close().then(() => {});
