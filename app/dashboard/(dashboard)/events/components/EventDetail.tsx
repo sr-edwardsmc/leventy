@@ -16,9 +16,7 @@ function EventDetail(props: EventDetailProps) {
     ticketingId: string,
     enabled: boolean
   ) => {
-    console.log(ticketingId, enabled);
-    const response = await updateTicketingAvailability(ticketingId, enabled);
-    console.log(response);
+    await updateTicketingAvailability(ticketingId, enabled);
   };
 
   return (
@@ -32,7 +30,7 @@ function EventDetail(props: EventDetailProps) {
           height={250}
         />
       </article>
-      <article className="flex md:flex-row flex-col h-full justify-between gap-2 text-black">
+      <article className="flex flex-col h-full justify-between gap-2 text-black">
         <section className="flex flex-col md:flex-row gap-20">
           <article>
             <p className="text-xl font-bold">{selectedEvent.name}</p>
