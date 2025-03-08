@@ -7,6 +7,7 @@ import { Notification } from "@/components/Notifications/Notifications";
 import { useUserStore } from "@/store/userStore";
 
 import { signIn } from "@/app/actions/auth";
+import { Role } from "@prisma/client";
 
 interface LoginFormProps {}
 
@@ -19,19 +20,21 @@ export const LoginForm = ({}: LoginFormProps) => {
 
   const handleSignIn = async (formData: FormData) => {
     setIsLoading(true);
-    try {
-      const response = await signIn("credentials", formData);
-      if (response?.loggedUser) setUser(response.loggedUser);
-      if (response?.loggedUser.role === "DOORMAN") {
-        router.push("/dashboard/scanner");
-      } else {
-        router.push("/dashboard");
+    setTimeout(async () => {
+      try {
+        const response = await signIn("credentials", formData);
+        if (response?.loggedUser) setUser(response.loggedUser);
+        if (response?.loggedUser.role === Role.DOORMAN) {
+          router.push("/dashboard/scanner");
+        } else {
+          router.push("/dashboard");
+        }
+      } catch (error: any) {
+        setError(error.message);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error: any) {
-      setError(error.message);
-    } finally {
-      setIsLoading(false);
-    }
+    }, 1500);
   };
   return (
     <section className="w-full h-[calc(100vh-80px)] p-4 flex items-center justify-center">
