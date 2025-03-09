@@ -1,5 +1,5 @@
--- DropForeignKey
-ALTER TABLE "User" DROP CONSTRAINT "User_collectiveId_fkey";
+-- -- DropForeignKey
+-- ALTER TABLE "User" DROP CONSTRAINT "User_collectiveId_fkey";
 
 -- AlterTable
 ALTER TABLE "User" ALTER COLUMN "collectiveId" DROP NOT NULL;
