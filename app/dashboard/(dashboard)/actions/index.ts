@@ -4,7 +4,9 @@ import { Role, TicketStatus } from "@prisma/client";
 
 export const getDashboardStatictics = async (user: TUserWithRelations) => {
   const generatedBy =
-    user.role === Role.SYSTEM_ADMIN || user.role === Role.COLLECTIVE_ADMIN
+    user.role === Role.SYSTEM_ADMIN ||
+    user.role === Role.COLLECTIVE_ADMIN ||
+    user.role == Role.DOORMAN
       ? {}
       : { generatedById: user.id };
   const totalSoldTickets = await db.ticket.findMany({
