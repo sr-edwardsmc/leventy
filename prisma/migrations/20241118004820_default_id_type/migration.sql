@@ -1,3 +1,0 @@
--- AlterTable
-ALTER TABLE "User" ALTER COLUMN "idType" DROP NOT NULL,
-ALTER COLUMN "idType" SET DEFAULT 'CC';
