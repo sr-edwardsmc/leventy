@@ -164,6 +164,7 @@ model Ticketing {
   soldTickets Ticket[]
   isAvailable Boolean @default(true)
   isInternal Boolean @default(false)
+  isInternalPromoters Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime? @updatedAt
 }
