@@ -128,7 +128,8 @@ const Sidebar = ({}: SidebarProps) => {
               {/* <!-- Menu Item Dashboard --> */}
               {(userRole === Role.SYSTEM_ADMIN ||
                 userRole === Role.COLLECTIVE_ADMIN ||
-                userRole === Role.PROMOTER) && (
+                userRole === Role.PROMOTER ||
+                userRole === Role.DOORMAN) && (
                 <SidebarLinkGroup activeCondition={pathname === "/dashboard"}>
                   {(handleClick, open) => {
                     return (

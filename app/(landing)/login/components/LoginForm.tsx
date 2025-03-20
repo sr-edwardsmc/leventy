@@ -24,7 +24,10 @@ export const LoginForm = ({}: LoginFormProps) => {
       try {
         const response = await signIn("credentials", formData);
         if (response?.loggedUser) setUser(response.loggedUser);
-        if (response?.loggedUser.role === Role.DOORMAN) {
+        if (
+          response?.loggedUser.role === Role.DOORMAN &&
+          !response.loggedUser.email.includes("hacienda")
+        ) {
           router.push("/dashboard/scanner");
         } else {
           router.push("/dashboard");

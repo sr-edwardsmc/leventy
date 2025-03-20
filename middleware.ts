@@ -12,6 +12,7 @@ const adminRoles = [
   "SYSTEM_ADMIN",
   "COLLECTIVE_MEMBER",
   "PROMOTER",
+  "DOORMAN",
 ];
 
 export default async function middleware(req: NextRequest) {
