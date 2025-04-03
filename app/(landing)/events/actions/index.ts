@@ -20,6 +20,9 @@ export const getAllEventsOrdered = async () => {
     await db.event.findMany({
       where: {
         date: { gte: new Date().toISOString() },
+        id: {
+          not: "ev006",
+        },
       },
       include: {
         ticketing: {
