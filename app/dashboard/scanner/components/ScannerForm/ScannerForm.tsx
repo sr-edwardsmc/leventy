@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 import { QrReader } from "../QRScanner/QRScanner";
 import { getSession } from "@/utils/auth";
 import { TUserWithRelations } from "@/types/users";
+import { QrReader2 } from "../QRScanner/QRScanner2";
 
 export const ScannerForm = () => {
   const [scannerOpened, setScannerOpened] = useState(false);
+  const [scannerOpened2, setScannerOpened2] = useState(false);
 
   const { user, setUser } = useUserStore();
 
@@ -35,13 +37,26 @@ export const ScannerForm = () => {
           />
           <button
             onClick={() => setScannerOpened(true)}
+            className="w-full h-[4em] bg-black text-white py-2 rounded-md text-lg mb-6"
+          >
+            Escaner 1
+          </button>
+          <button
+            onClick={() => setScannerOpened2(true)}
             className="w-full h-[4em] bg-black text-white py-2 rounded-md text-lg"
           >
-            Escanear código QR
+            Escaner 2
           </button>
         </section>
       )}
       {scannerOpened && <QrReader onClose={() => setScannerOpened(false)} />}
+      {scannerOpened2 && (
+        <QrReader2
+          onClose={() => {
+            setScannerOpened2(false);
+          }}
+        />
+      )}
     </>
   );
 };
