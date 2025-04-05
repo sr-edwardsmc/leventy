@@ -31,7 +31,10 @@ export const getEventsByCollectiveId = async (
   collectiveId: string
 ): Promise<TEventWithRelations[]> => {
   return await db.event.findMany({
-    where: { collectiveId, date: { gte: new Date().toISOString() } },
+    where: {
+      collectiveId,
+      date: { gte: new Date(new Date().setHours(0, 0, 0, 0)).toISOString() },
+    },
     include: {
       ticketing: true,
     },
