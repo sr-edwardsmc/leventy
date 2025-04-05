@@ -1,299 +1,319 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
-
 import QrScanner from "qr-scanner";
 import QrFrame from "@/public/assets/qr-frame.svg";
 import "./qr-scanner.css";
 import { validateTicket } from "@/app/dashboard/(dashboard)/tickets/actions";
 import { TRaver, type TTicket } from "@/types/events";
 
-const QrReader2 = ({ onClose }: { onClose: () => void }) => {
-  // QR States
+type QRValidationStatus = "idle" | "scanning" | "valid" | "invalid" | "error";
+
+const QRScanner2 = ({ onClose }: { onClose: () => void }) => {
+  // Refs
   const scanner = useRef<QrScanner | null>(null);
   const videoEl = useRef<HTMLVideoElement>(null);
   const qrBoxEl = useRef<HTMLDivElement>(null);
-  const [qrOn, setQrOn] = useState<boolean>(false);
 
-  const [QRValidationStatus, setQRValidationStatus] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [invalidQr, setInvalidQr] = useState<TTicket | null>(null);
+  // State
+  const [cameraState, setCameraState] = useState<
+    "active" | "inactive" | "error"
+  >("inactive");
+  const [validationStatus, setValidationStatus] =
+    useState<QRValidationStatus>("idle");
+  const [scannedData, setScannedData] = useState<string>("");
   const [ticket, setTicket] = useState<TTicket | null>(null);
   const [ticketOwner, setTicketOwner] = useState<TRaver | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
-  // Result
-  const [scannedResult, setScannedResult] = useState<string | undefined>(
-    undefined
-  );
-
-  // Start scanner function - separate for reuse
-  const startScanner = async () => {
-    if (!videoEl.current || !scanner.current) return;
-
-    try {
-      await scanner.current.start();
-      setQrOn(true);
-      setError(null);
-    } catch (err) {
-      console.error("Error starting scanner:", err);
-      setQrOn(false);
-      setError("No se pudo iniciar la cámara. Verifique los permisos.");
-    }
-  };
-
-  // Stop scanner function - separate for reuse
-  const stopScanner = () => {
+  // Cleanup scanner instance
+  const cleanupScanner = useCallback(() => {
     if (scanner.current) {
       scanner.current.stop();
+      scanner.current.destroy();
+      scanner.current = null;
     }
-  };
+  }, []);
 
-  // Success
-  const onScanSuccess = (result: QrScanner.ScanResult) => {
-    if (!result?.data) {
-      return; // Ignore empty results
-    }
+  // Initialize QR Scanner
+  const initScanner = useCallback(async () => {
+    if (!videoEl.current || scanner.current) return;
 
-    // Stop scanner and set result
-    stopScanner();
-    setScannedResult(result.data);
-  };
-
-  // Fail
-  const onScanFail = (err: string | Error) => {
-    // Just log the error but don't stop scanning
-    console.log("Scan error (normal during scanning):", err);
-  };
-
-  // Initialize scanner
-  useEffect(() => {
-    if (videoEl?.current && !scanner.current) {
-      try {
-        // Instantiate the QR Scanner
-        scanner.current = new QrScanner(videoEl.current, onScanSuccess, {
-          onDecodeError: onScanFail,
+    try {
+      scanner.current = new QrScanner(
+        videoEl.current,
+        (result) => {
+          setScannedData(result.data);
+          setValidationStatus("scanning");
+          scanner.current?.pause();
+        },
+        {
+          onDecodeError: (error) => {
+            console.warn("QR Scan Error:", error);
+          },
           preferredCamera: "environment",
           highlightScanRegion: true,
           highlightCodeOutline: true,
-          overlay: qrBoxEl?.current || undefined,
-        });
+          overlay: qrBoxEl.current || undefined,
+          maxScansPerSecond: 5, // Limitar escaneos por segundo para mejor rendimiento
+          returnDetailedScanResult: true,
+        }
+      );
 
-        // Start QR Scanner
-        startScanner();
-      } catch (initError) {
-        console.error("Scanner initialization error:", initError);
-        setError(
-          "Error al inicializar el escáner. Intente recargar la página."
-        );
-      }
+      await scanner.current.start();
+      setCameraState("active");
+    } catch (error) {
+      console.error("Camera Error:", error);
+      setCameraState("error");
+      setErrorMessage(
+        "Error al acceder a la cámara. Por favor verifica los permisos."
+      );
     }
-
-    // Clean up on unmount
-    return () => {
-      stopScanner();
-    };
   }, []);
 
-  // Handle camera permissions
-  useEffect(() => {
-    if (!qrOn && error) {
-      // Show a better UI message instead of an alert
-      console.error("Camera error:", error);
-    }
-  }, [qrOn, error]);
+  // Validate scanned ticket
+  const validateScannedTicket = useCallback(async (data: string) => {
+    try {
+      const response = await validateTicket(data);
 
-  // Validate QR code
-  useEffect(() => {
-    let isMounted = true;
-
-    const validateQrCode = async () => {
-      if (!scannedResult) return;
-
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const response = await validateTicket(scannedResult);
-
-        // Check if component is still mounted before updating state
-        if (!isMounted) return;
-
-        if (response?.status === "success") {
-          setQRValidationStatus("valid");
-          setTicket(response.ticket || null);
-          setTicketOwner(response.ticket?.raver || null);
-        } else {
-          if (response?.status === "error") {
-            setInvalidQr(response.ticket || null);
-          }
-          setQRValidationStatus(
-            `Error - ${response?.message || "Desconocido"}`
-          );
-        }
-      } catch (error) {
-        if (!isMounted) return;
-        console.error("Validation error:", error);
-        setQRValidationStatus("Error - Error de conexión o validación");
-        setError("Error al validar el código QR. Intente nuevamente.");
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+      if (response?.status === "success") {
+        setValidationStatus("valid");
+        setTicket(response.ticket || null);
+        setTicketOwner(response.ticket?.raver || null);
+      } else {
+        setValidationStatus("invalid");
+        setErrorMessage(response?.message || "Ticket inválido");
+        setTicket(response?.ticket || null);
       }
-    };
+    } catch (error) {
+      console.error("Validation Error:", error);
+      setValidationStatus("error");
+      setErrorMessage("Error al validar el ticket. Intente nuevamente.");
+    }
+  }, []);
 
-    validateQrCode();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [scannedResult]);
-
-  // Reset and restart scanning
-  const handleCloseClick = () => {
-    setScannedResult(undefined);
-    setQRValidationStatus("");
+  // Reset scanner state
+  const resetScanner = useCallback(() => {
+    setScannedData("");
+    setValidationStatus("idle");
     setTicket(null);
     setTicketOwner(null);
-    setInvalidQr(null);
-    setError(null);
-
-    // Restart scanner if closing validation screen
-    if (scanner.current) {
-      startScanner();
+    setErrorMessage("");
+    if (scanner.current && cameraState === "active") {
+      scanner.current.start();
     }
+  }, [cameraState]);
 
+  // Handle close
+  const handleClose = useCallback(() => {
+    cleanupScanner();
     onClose();
-  };
+  }, [onClose, cleanupScanner]);
 
-  // Retry scanning
-  const handleRetry = () => {
-    setScannedResult(undefined);
-    setQRValidationStatus("");
-    setTicket(null);
-    setTicketOwner(null);
-    setInvalidQr(null);
-    setError(null);
+  // Effects
+  useEffect(() => {
+    initScanner();
+    return () => cleanupScanner();
+  }, [initScanner, cleanupScanner]);
 
-    // Restart scanner
-    if (scanner.current) {
-      startScanner();
+  useEffect(() => {
+    if (scannedData && validationStatus === "scanning") {
+      validateScannedTicket(scannedData);
     }
-  };
+  }, [scannedData, validationStatus, validateScannedTicket]);
 
+  // Camera error handling
+  useEffect(() => {
+    if (cameraState === "error") {
+      console.error("Camera access denied or not available");
+    }
+  }, [cameraState]);
+
+  // Loading state
+  if (validationStatus === "scanning") {
+    return (
+      <div className="fixed inset-0 bg-gray-800 bg-opacity-90 flex flex-col items-center justify-center z-50">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-4 border-b-4 border-white mb-4"></div>
+        <p className="text-white text-xl font-semibold">Validando ticket...</p>
+      </div>
+    );
+  }
+
+  // Valid ticket
+  if (validationStatus === "valid" && ticket && ticketOwner) {
+    return (
+      <div className="fixed inset-0 bg-green-600 flex flex-col items-center justify-center z-50 p-4">
+        <button
+          onClick={handleClose}
+          className="absolute top-4 right-4 bg-white text-green-600 rounded-full w-10 h-10 flex items-center justify-center font-bold text-xl"
+          aria-label="Cerrar"
+        >
+          ×
+        </button>
+
+        <div className="bg-white rounded-full p-4 mb-6">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-16 w-16 text-green-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+        </div>
+
+        <h2 className="text-white text-2xl font-bold mb-2">¡Ticket Válido!</h2>
+        <p className="text-white text-lg mb-1">{ticketOwner.fullName}</p>
+        <p className="text-white mb-4">{ticketOwner.idNumber}</p>
+
+        <div className="bg-white bg-opacity-20 rounded-lg p-4 w-full max-w-md">
+          <p className="text-white font-medium">{ticket.ticketing.name}</p>
+          <p className="text-white">Precio: ${ticket.ticketing.price}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Invalid/Error states
+  if (validationStatus === "invalid" || validationStatus === "error") {
+    return (
+      <div className="fixed inset-0 bg-red-600 flex flex-col items-center justify-center z-50 p-4">
+        <button
+          onClick={resetScanner}
+          className="absolute top-4 right-4 bg-white text-red-600 rounded-full w-10 h-10 flex items-center justify-center font-bold text-xl"
+          aria-label="Reintentar"
+        >
+          ↻
+        </button>
+
+        <div className="bg-white rounded-full p-4 mb-6">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-16 w-16 text-red-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </div>
+
+        <h2 className="text-white text-2xl font-bold mb-4">
+          {validationStatus === "invalid"
+            ? "Ticket Inválido"
+            : "Error de Validación"}
+        </h2>
+
+        <p className="text-white text-center mb-6">{errorMessage}</p>
+
+        {ticket?.checkedAt && (
+          <div className="bg-white bg-opacity-20 rounded-lg p-3">
+            <p className="text-white">
+              Validado anteriormente:{" "}
+              {new Date(ticket.checkedAt).toLocaleTimeString()}
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Camera error
+  if (cameraState === "error") {
+    return (
+      <div className="fixed inset-0 bg-gray-800 flex flex-col items-center justify-center z-50 p-6">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-12 w-12 mx-auto"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+        </div>
+
+        <h2 className="text-white text-xl font-bold mb-4 text-center">
+          Error de Cámara
+        </h2>
+        <p className="text-gray-300 text-center mb-6">{errorMessage}</p>
+
+        <button
+          onClick={initScanner}
+          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded"
+        >
+          Reintentar
+        </button>
+
+        <button
+          onClick={handleClose}
+          className="mt-4 text-gray-300 hover:text-white"
+        >
+          Cerrar
+        </button>
+      </div>
+    );
+  }
+
+  // Main scanner view
   return (
-    <>
-      {!scannedResult && (
-        <div className="qr-reader relative">
-          <video ref={videoEl}></video>
-          <div ref={qrBoxEl} className="qr-box">
+    <div className="fixed inset-0 bg-black flex flex-col items-center justify-center z-50">
+      <button
+        onClick={handleClose}
+        className="absolute top-4 right-4 bg-white bg-opacity-30 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-xl z-10"
+        aria-label="Cerrar escáner"
+      >
+        ×
+      </button>
+
+      <div className="relative w-full max-w-2xl h-96">
+        <video
+          ref={videoEl}
+          className="w-full h-full object-cover"
+          playsInline
+          muted
+        />
+
+        <div
+          ref={qrBoxEl}
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <div className="relative border-4 border-white rounded-lg w-64 h-64">
             <Image
               src={QrFrame}
-              alt="Qr Frame"
-              width={256}
-              height={256}
-              className="qr-frame"
+              alt="Marco de escaneo QR"
+              fill
+              className="object-contain p-2"
+              priority
             />
           </div>
-
-          {/* Camera error message */}
-          {error && (
-            <div className="absolute inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center p-4 text-center">
-              <div className="text-white text-xl font-bold mb-4">{error}</div>
-              <button
-                className="px-4 py-2 bg-blue-500 text-white rounded-md"
-                onClick={handleRetry}
-              >
-                Reintentar
-              </button>
-            </div>
-          )}
-
-          {/* Close button for scanner */}
-          <button
-            className="absolute top-4 left-4 text-white text-2xl font-bold border border-white rounded-full w-10 h-10 flex items-center justify-center"
-            onClick={handleCloseClick}
-          >
-            X
-          </button>
         </div>
-      )}
 
-      {/* Loading screen */}
-      {scannedResult && isLoading && (
-        <div className="w-full h-[100vh]">
-          <div className="flex flex-col items-center justify-center w-full h-full bg-gray-400">
-            <div className="text-white text-2xl font-bold flex flex-col items-center justify-center">
-              <div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32 mb-4"></div>
-              <span className="">Validando...</span>
-            </div>
-          </div>
+        <div className="absolute bottom-4 left-0 right-0 text-center">
+          <p className="text-white bg-black bg-opacity-50 px-4 py-2 rounded-full inline-block">
+            Escanear código QR del ticket
+          </p>
         </div>
-      )}
-
-      {/* Valid QR success screen */}
-      {scannedResult && QRValidationStatus === "valid" && !isLoading && (
-        <div className="w-full h-[100vh] relative">
-          <button
-            className="absolute top-4 left-4 text-white text-2xl font-bold border border-white rounded-full w-10 h-10 flex items-center justify-center"
-            onClick={handleCloseClick}
-          >
-            X
-          </button>
-          <div className="flex flex-col items-center justify-center w-full h-full bg-green-400">
-            <div className="text-white text-2xl font-bold flex flex-col items-center justify-center">
-              <span className="p-5 rounded-full bg-white mb-2">✅</span>
-              <span className="">Válido: Ingreso aprobado.</span>
-              {ticket?.ticketing && (
-                <span>
-                  Etapa: {ticket.ticketing.name} - ${ticket.ticketing.price}
-                </span>
-              )}
-              {ticketOwner?.fullName && (
-                <span className="">{ticketOwner.fullName}</span>
-              )}
-              {ticketOwner?.idNumber && <span>{ticketOwner.idNumber}</span>}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Invalid QR error screen */}
-      {scannedResult && QRValidationStatus !== "valid" && !isLoading && (
-        <div className="w-full h-[100vh] relative">
-          <button
-            className="absolute top-4 left-4 text-white text-2xl font-bold border border-white rounded-full w-10 h-10 flex items-center justify-center"
-            onClick={handleCloseClick}
-          >
-            X
-          </button>
-          <div className="flex flex-col items-center justify-center w-full h-full bg-rose-400">
-            <div className="text-white text-2xl font-bold flex flex-col justify-center items-center text-center p-4">
-              <span className="w-20 h-20 rounded-full bg-white mb-2 flex justify-center items-center">
-                <span className="text-rose-500 font-bold text-3xl">X</span>
-              </span>
-              <span className="mb-2">{QRValidationStatus}</span>
-              {invalidQr?.checkedAt && (
-                <span className="mb-4">
-                  Validado a las:{" "}
-                  {new Date(invalidQr.checkedAt)
-                    .toISOString()
-                    .substring(11, 19)}
-                </span>
-              )}
-              <button
-                className="mt-4 px-6 py-2 bg-white text-rose-500 rounded-md font-bold"
-                onClick={handleRetry}
-              >
-                Escanear Otro
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 };
 
-export { QrReader2 };
+export { QRScanner2 };

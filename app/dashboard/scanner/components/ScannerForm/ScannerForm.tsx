@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { QrReader } from "../QRScanner/QRScanner";
 import { getSession } from "@/utils/auth";
 import { TUserWithRelations } from "@/types/users";
-import { QrReader2 } from "../QRScanner/QRScanner2";
+import { QRScanner2 } from "../QRScanner/QRScanner2";
 
 export const ScannerForm = () => {
   const [scannerOpened, setScannerOpened] = useState(false);
@@ -51,7 +51,7 @@ export const ScannerForm = () => {
       )}
       {scannerOpened && <QrReader onClose={() => setScannerOpened(false)} />}
       {scannerOpened2 && (
-        <QrReader2
+        <QRScanner2
           onClose={() => {
             setScannerOpened2(false);
           }}
