@@ -20,9 +20,7 @@ export const getCollectiveEvents = async (collectiveId: string) => {
   return await db.event.findMany({
     where: {
       collectiveId,
-      date: {
-        gte: new Date().toISOString(),
-      },
+      date: { gte: new Date(new Date().setHours(0, 0, 0, 0)).toISOString() },
     },
   });
 };
