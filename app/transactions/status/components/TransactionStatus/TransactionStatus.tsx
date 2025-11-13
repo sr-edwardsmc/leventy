@@ -35,7 +35,7 @@ const TransactionStatusComponent = () => {
 };
 
 export const TransactionStatus = () => (
-  <Suspense fallback={<Loader message="Cargando" />}>
+  <Suspense fallback={<Loader message="Cargando..." />}>
     <TransactionStatusComponent />
   </Suspense>
 );
