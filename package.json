@@ -39,7 +39,7 @@
     "nodemailer": "^7.0.12",
     "papaparse": "^5.4.1",
     "postcss": "^8",
-    "puppeteer": "^22.12.1",
+    "puppeteer": "^25.16.0",
     "qr-scanner": "^1.4.2",
     "qrcode": "^1.5.3",
     "qrcode.react": "^3.1.0",
